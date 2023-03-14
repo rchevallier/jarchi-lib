@@ -1,0 +1,15 @@
+﻿/*
+ * Change all selected elements name to SnakeCase (from CamelCase or TitleCase)
+ */
+
+/**
+ * 
+ * @param {string} v  the value to convert, supposed to be either TitleCase or CamelCase
+ */
+function toSnakeCase(v) {
+    return v.split(/(?=\s?[A-Z])/).join('_').toLowerCase()
+}
+ 
+selection.filter("element").each(
+    (o) => {o.name = toSnakeCase(o.name)}
+)

@@ -1,0 +1,143 @@
+﻿/*
+ * Add stereotype in label on all elements in view if the stereotype exists
+ */
+ console.clear()
+
+ load (__DIR__ + "misc.js")
+ log.level = LogLevel.INFO
+ log.info("=== script started")
+
+if (selection.size() === 0) {
+    window.alert(`You must select a least a single visual object or a view`);
+    exit();
+}
+let current_view = undefined
+if (selection.size() === 1) {
+    if (selection.is('archimate-diagram-model')) {
+        current_view = selection.first(); 
+    } else {
+        current_view  = selection.first().view;
+    }
+}
+if (!current_view) {
+    window.alert(`Couln't find the view to work on`);
+    exit();
+}
+
+/**
+ * Check legacy property stereotype existence, returns the property key used
+ * 
+ * @param {VisualObject} e 
+ * @returns {string} The stereotype 
+ */
+function has_stereotype(e) {
+    if (e.prop('stereotype')) {
+        return 'stereotype'
+    } else if (e.prop('__stereotype')) {
+        return '__stereotype'
+    } else {
+        return null
+    }
+}
+
+/**
+ * Update and create the specialization for the visual object if exists
+ * Clean legacy stereotype property
+ * 
+ * @param {VisualObject} e
+ * @returns {void}
+ */
+function update_specialization(e) {
+    let specialization = e.specialization
+
+    // check first is specialization is hardcoded in label. This can overwrite previous specialisation
+    let re_stereotype = e.name.match(/<(.+)>/)
+    if (re_stereotype) {
+        e.name = e.name.replace(/<.+>/, '').trim()
+        specialization = re_stereotype[1].trim()
+    } 
+    // cleaning legacy
+    if (has_stereotype(e)) {
+        // if not exists yet and not specialization hardcoded in name, check the legacy stereotype value
+        if (!specialization) {
+            specialization = e.prop(has_stereotype(e))
+        }
+        e.removeProp(has_stereotype(e)) // clean legacy
+    }
+
+    if (e.labelExpression && e.labelExpression.includes('stereotype')) {
+        // clean legacy then
+        e.labelExpression = ''
+    }
+
+    if (specialization && e.specialization !== specialization) {
+        // create the specialization when necessary
+        let exists = e.model.findSpecialization(specialization, e.type);
+        if (exists) {
+            log.debug(`specialization ${specialization} (${e.type}) found`)
+            specialization = exists.name
+        } else {
+            specialization = e.model.createSpecialization(specialization, e.type).name;
+            log.info(`specialization ${specialization} (${e.type}) created`)
+        }
+        e.specialization = specialization
+        log.info(`(${e.type}) "${e.name}" setting specialization to ${e.specialization}`)
+    } else {
+        log.debug(`(${e.type}) "${e.name}" no specialization`)
+    }
+}
+
+const ELEMENT_LABEL = '${name}${if:${specialization}:\n<${specialization}>}'
+const RELATION_LABEL = '${wordwrap:12:${if:${name}:${name}:${specialization}}}'
+
+/**
+ * 
+ * @param {VisualObject} e 
+ * @param {string} label_expr 
+ * @param {boolean} multiligne
+ * @returns void
+ */
+function update_label_expression(e, label_expr, multiligne = true) {
+
+    /**
+     * 
+     * @param {string} label_expr 
+     * @param {boolean} multiligne 
+     * @returns {string}
+     */
+    function format_label(label_expr, multiligne) {
+        if (label_expr) {
+            return multiligne ? label_expr : label_expr.replace("\n", " ")
+        } else {
+            return ""
+        }
+    }
+
+    if (e.specialization && !e.labelExpression) {
+        // set if stereotype exists and no label already
+        log.info(`setting label for ${e.type}: '${e.name}'`)
+        e.labelExpression = format_label(label_expr, multiligne)
+    } else if (!e.specialization 
+            && format_label(e.labelExpression, multiligne) === format_label(label_expr, multiligne)) {
+        // reset the label only if the specialization label is used and no specialization
+        e.labelExpression = ''
+    }   
+}
+
+$(current_view).find("element").each( 
+    /** @param {VisualObject} e */
+    e => {
+        update_specialization(e)
+        update_label_expression(e, ELEMENT_LABEL, e.bounds.height >= 20)
+    }
+)
+
+$(current_view).find("relationship").each( 
+    r => {
+        update_specialization(r)
+        update_label_expression(r, RELATION_LABEL)
+    }
+)
+
+log.info("=== script terminated")
+console.show()

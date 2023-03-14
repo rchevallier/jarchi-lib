@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "checkJs": true,
+        "alwaysStrict": true,
+        "target": "es2020"
+    },
+    // "files": ["typings/globals.d.ts", "Lineage analysis.ajs", "test.ajs", "LineageAnalysis.js", "misc.js", "dependencies.js", "LineageConfigDialog.js", "GraalBug.ajs"],
+    "files": [
+        "typings/globals.d.ts",
+        "lib/misc.js",
+        // "dependencies.js",
+        // "Lineage analysis.ajs",
+        // "LineageAnalysis.js",
+        // "LineageConfigDialog.js",
+        // "Apply specialization label.ajs",
+        // "Generate legend.ajs",
+        // "Find deprecated elements.ajs",
+        // "Property heatmap.ajs",
+        // "Export View to CSV.ajs",
+        "lib/ColormapWizard.js",
+        "lib/ColormapModel.js",
+        // "to SnakeCase.ajs",
+        "Colormap.ajs",
+        "./lib/ImageRegistry.js"
+    ],
+    "exclude": [
+        "lib.dom.d.ts"
+    ]
+}

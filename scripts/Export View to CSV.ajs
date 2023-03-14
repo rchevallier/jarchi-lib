@@ -1,0 +1,174 @@
+/*
+ * Export To CSV
+ * 
+ * Requires jArchi - https://www.archimatetool.com/blog/2018/07/02/jarchi/
+ * Requires PapaParse - https://www.papaparse.com/
+ * Works with Import from CSV script - https://gist.github.com/smileham/1e57a5946235e780dee5a824f664aa3d
+ * 
+ * Version 1: Export to CSV
+ * Version 1.1: Avoid duplicate concepts exported from diagram
+ * Version 1.2: Fix missing properties
+ * Version 2: Updated to export Relationships to additional CSV
+ * Version 2.1: Added error check for View.
+ * Version 2.2: Added support for Specialization
+ *
+ * (c) 2018 Steven Mileham
+ *
+ */
+
+var debug = false;
+
+// Show output in the console
+console.show();
+console.clear();
+console.log("> Starting CSV Export");
+
+load(__DIR__ + "lib/papaparse.min.js");
+
+var propertiesList = [];
+
+var conceptHashMap = [];
+
+// Set up some conceptHeaders
+var conceptHeaders = [
+    "Name",
+    "Documentation",
+    "UID",
+    "Type",
+    "Specialization"
+];
+
+var relationshipHeaders = [
+    "Relationship ID",
+    "From Name",
+    "From Type",
+    "Relationship Type",
+    "Specialization",
+    "To Name",
+    "To Type",
+    "Relationship Name",
+    "Relationship Documentation"
+];
+
+var typeMappings = {
+    "access-relationship":"Accesses",
+    "composition-relationship":"Comprises",
+    "flow-relationship":"Flows to",
+    "realization-relationship":"Realises",
+    "assignment-relationship":"Assigned to",
+    "serving-relationship":"Serves/Used By",
+    "association-relationship":"Associated to",
+    "aggregation-relationship":"Aggregates"
+}
+
+var current_row = 1;
+
+var theData = new Array();
+var theRelationshipData = new Array();
+
+var theView = $(selection).filter("archimate-diagram-model").first();
+debug? console.log(theView):true;
+
+if (theView) {
+
+    // Loop through all elements and set cells to elememt info
+    $(theView).find().not("relationship").each(function(e) {
+
+        var theConcept = e.concept;
+        try {
+
+            if (e.name!="") {
+
+                if (!conceptHashMap[theConcept.id]) {
+                    conceptHashMap[theConcept.id]=true;
+
+                    var theProperties = theConcept.prop();  
+
+                    for (var i=0; i<theProperties.length; i++){
+                        var found = false;
+                        for (var j=0; j<propertiesList.length; j++) {
+                            if (propertiesList[j]==theProperties[i]) {
+                                found=true;
+                            }
+                        }
+                        if (!found) {
+                            propertiesList.push(theProperties[i]);
+                            conceptHeaders.push(theProperties[i]);
+                        }
+                    }
+
+                    var theObject = new Object;
+                    theObject["Name"]=theConcept.name;
+                    theObject["Documentation"]=theConcept.documentation;
+                    theObject["UID"]=theConcept.id;
+                    theObject["Type"]=theConcept.type;
+                    theObject["Specialization"]=theConcept.specialization;
+
+                    for (var i=0; i<propertiesList.length; i++){
+                        if (theConcept.prop(propertiesList[i])) {
+                            theObject[propertiesList[i]]=""+theConcept.prop(propertiesList[i]);
+                        }
+                    }
+                    debug? console.log("> theObject"):true;
+                    debug? console.log(theObject):true;
+
+                    theData.push(theObject);
+
+                    // Get Relationships
+
+                    $(e).outRels().each(function (r) {
+                        var theRelationshipRow = new Object;
+                        theRelationshipRow["Relationship ID"]=r.id;
+                        theRelationshipRow["From Name"]=r.source.name;
+                        theRelationshipRow["From Type"]=r.source.type;
+                        theRelationshipRow["Relationship Type"]=!typeMappings[r.type]?r.type:typeMappings[r.type];
+                        theRelationshipRow["Specialization"]=r.specialization;
+                        theRelationshipRow["To Name"]=r.target.name;
+                        theRelationshipRow["To Type"]=r.target.type;
+                        theRelationshipRow["Relationship Name"]=r.name;
+                        theRelationshipRow["Relationship Documentation"]=r.documentation;
+
+                        theRelationshipData.push(theRelationshipRow);
+                    });
+
+                    current_row++;
+                }
+                else {
+                    console.log("Duplicate Concept: ",theConcept.name);
+                }
+            }
+        }
+        catch (error) {
+            console.log("> Ignoring: "+e);
+        }
+    });
+
+    // Open a dialog to let the user choose where to save the generated file
+    var defaultFileName = model.name ? model.name + "-" + theView.name + ".csv" : "Exported Model.csv"; // Default file name
+    var exportFile = window.promptSaveFile({ title: "Export to CSV", filterExtensions: [ "*.csv" ], fileName: defaultFileName } );
+
+    debug? console.log("> conceptHeaders"+conceptHeaders):true;
+
+    debug? console.log("> TheData"+theData.length):true;
+    debug? console.log(theData):true;
+
+    debug? console.log(theRelationshipData):true;
+
+    var theCSV = Papa.unparse({fields:conceptHeaders, data:theData}, {delimiter: ";", quotes: true});
+    var theRelationshipsCSV = Papa.unparse({fields:relationshipHeaders, data:theRelationshipData}, {delimiter: ";"});
+
+    if(exportFile != null) {
+        debug? console.log("> TheCSV"):true;
+        debug? console.log(theCSV):true;
+    
+        $.fs.writeFile(exportFile, theCSV);
+        $.fs.writeFile(exportFile.substring(0,exportFile.length-4) +"-relationship.csv", theRelationshipsCSV);
+        console.log("> Export done");
+    }
+    else {
+        console.log("> Export cancelled");
+    }
+}
+else {
+    console.log("> Please Select a View");
+}

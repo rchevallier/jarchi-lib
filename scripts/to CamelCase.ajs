@@ -1,0 +1,20 @@
+﻿/*
+ * Change all selected elements name to CamelCase (from SnakeCase and TitleCase).
+ */
+
+/**
+ * 
+ * @param {string} v  the value to convert, supposed to be either ProperCase or CamelCase
+ */
+function toCamelCase(v) {
+    return v.replace(
+        /[^_ ]+/g,
+        function(txt) {
+          return txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase();
+        }
+      ).split(/(?=)[_ ]*/).join('')
+}
+ 
+selection.filter("element").each(
+    (o) => {o.name = toCamelCase(o.name)}
+)

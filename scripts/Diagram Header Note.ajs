@@ -1,0 +1,15 @@
+//Script to add a note to a view with name of the view, date and your name
+//Thank you to J-B Sarrodie
+
+// Get the first view in the current selection
+var view = selection.filter("archimate-diagram-model").first();
+
+// Get current date
+var currentDate = new Date();
+
+// Create a new note and set its text
+var note = view.createObject("note", 10, 10, -1, -1);
+note.text = view.name + "\n" + currentDate.toString() +"\n" + "YOUR NAME";
+note.fillColor = "#e2e2be";
+
+console.log("Note added to " + view.name);

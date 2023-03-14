@@ -1,0 +1,145 @@
+"use strict";
+console.clear();
+
+load(__SCRIPTS_DIR__ + "lib/misc.js");
+log.level = LogLevel.TRACE;
+if (log.level <= LogLevel.DEBUG) console.show();
+
+load(__SCRIPTS_DIR__ + "lib/ColormapModel.js")
+load(__SCRIPTS_DIR__ + "lib/ColormapWizard.js")
+
+
+/**
+ * Will gather all properties of all elements visual objets in the view (no relationships)
+ * and for each property, the set of found values
+ * TODO: extend to support relationship schemes
+ * @param {ArchimateView} view the view to gather from
+ * @returns {Map<string, Set<string>>} alphabetically ordered set of property names
+ */
+function gatherViewPropertiesInfo(view) {
+    /** 
+     * @type {Map<string,Set<string>>} 
+     */
+    const props = new Map(); 
+    $(view).find("element").each (
+        function(e) {
+            for (let p of e.prop()) {
+                if (!props.has(p))
+                    props.set(p, new Set())
+                props.get(p).add(e.prop(p));
+            }
+        }
+    )
+    // sorting alphabetically by property names
+    const result = new Map(Array.from(props.entries()).sort());
+    return result;
+}
+
+
+/**
+ * Apply to the view the heatmap as configured by the wizard
+ * @param {ArchimateView} view 
+ * @param {ColorModel} model 
+ */
+function applyColormap(view, model)
+{
+    const selected = model.colormap.selection.map( v => v.text);
+    $(view).find("element").each(
+        (vo) => {
+            let label = vo.prop(model.property);
+            if (label && selected.includes(label)) {
+                vo.fillColor = model.colormap.get(label).color;
+            } else if (model.resetDefault) {
+                vo.fillColor = null
+            }
+        }
+    )
+}
+
+
+/**
+ * Create the associated legend in the view
+ * @param {ArchimateView} view 
+ * @param {ColorModel} model 
+ */
+function createLegend(view, model) {
+    const LEGEND_NAME = "Color Legend";
+    const LEGEND_COLOR = "#F7F7F7";
+    const GRID_SIZE = 12;
+    const X_MARGIN = GRID_SIZE / 2;
+    const Y_MARGIN = GRID_SIZE / 2;
+    const COLOR_HEIGHT = 30;
+    const COLOR_WIDTH = 12 * GRID_SIZE;
+    const X_LEGEND_ORIGIN = GRID_SIZE;
+    const Y_LEGEND_ORIGIN = GRID_SIZE;
+    const LEGEND_WIDTH = 2 * X_MARGIN + COLOR_WIDTH
+    const isCategorical = model.scaleType == ColorModel.CATEGORICAL;
+    const margin = (isCategorical) ? Y_MARGIN : 0
+
+    const currentLegend = $(view).find("." + LEGEND_NAME).filter("diagram-model-group")
+    if (currentLegend && model.resetDefault) {
+        log.info(`${LEGEND_NAME} already exists, deleting`)
+        currentLegend.delete();
+    }
+    let legendGroup = view.createObject(
+        "diagram-model-group", X_LEGEND_ORIGIN, Y_LEGEND_ORIGIN, LEGEND_WIDTH, 
+            COLOR_HEIGHT + (COLOR_HEIGHT + margin) * model.colormap.selection.length + (isCategorical ? Y_MARGIN : 0)
+        );
+    legendGroup.name = LEGEND_NAME;
+    legendGroup.borderType = BORDER.RECTANGLE;
+    legendGroup.fillColor = LEGEND_COLOR;
+    legendGroup.fontStyle = "bold"
+
+
+    let y = COLOR_HEIGHT;
+    const selection = isCategorical ? model.colormap.selection : model.scale.selection;
+    for (let colLabel of selection) {
+        log.trace(`legend color is ${colLabel.color} for label '${colLabel.text}'`);
+        let colLegend = legendGroup.createObject("diagram-model-note", X_MARGIN, y, COLOR_WIDTH, COLOR_HEIGHT);
+        y += COLOR_HEIGHT + margin -1;
+        colLegend.fillColor = colLabel.color.toString();
+        colLegend.borderType = isCategorical ? BORDER.RECTANGLE : BORDER.NONE;
+        colLegend.text = model.property + " = " + colLabel.text;
+    }
+}
+
+log.info("> Colormap script starts")
+
+/** @type ArchimateView */
+const theView = $(selection).filter("archimate-diagram-model").first();
+
+if (!theView) {
+    MessageDialog.openError(shell, "No view selected", "Please select a view in the diagram area or in the model tree");
+    log.error("No view selected. Stopping");
+    exit();
+}
+
+const propertiesInView = gatherViewPropertiesInfo(theView);
+if (propertiesInView.size == 0) {
+    MessageDialog.openWarning(shell, "Warning", "No property found in these views elements");
+    log.error("No property found in these views elements. Stopping");
+    exit();    
+}
+
+// FIXME encapsulate for sharing state
+// wizModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js
+const FINISH = 0, CANCEL = 1
+try {
+    // const w = new ColormapWizardDialogInstance(new PropertyColormap(propertiesInView));
+    wizModel = new ColorModel(propertiesInView);
+    const WizardDialog = Java.type('org.eclipse.jface.wizard.WizardDialog');
+    const wizardDlg = new WizardDialog(shell, wizardModel);
+    const rc = wizardDlg.open();
+    if (rc == FINISH) {
+        applyColormap(theView, wizModel);
+        createLegend(theView, wizModel);
+    } else {
+        log.info("execution cancelled");
+    }
+} finally {
+    wizardModel.dispose();
+    imageRegistry.dispose();        
+}
+
+log.info("> Colormap script end.")
+console.show();

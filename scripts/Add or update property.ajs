@@ -1,0 +1,7 @@
+var propName = window.prompt("Which property do you want to add or update (leave empty to cancel)?", "");
+if (propName) {
+	var propValue = window.prompt("Which value do you want to set for '"+propName+"' (leave empty to cancel)?", "");
+	if (propValue) {
+		$(selection).prop(propName, propValue);
+	}
+}

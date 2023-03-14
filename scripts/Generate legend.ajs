@@ -1,0 +1,250 @@
+//  
+// Generate diagram legend 
+//  
+// inspired David GERARD 
+// 2021 Robert Chevallier
+//  
+// requires ES6 (GraalVM)
+// For a selected view, create a group named 'Legend', in which will be nested for each concepts type found in view
+// - a concept, specifically sized to show the pictogram
+// - a note, to be used to name or explain the concept specifically in the view, hence preventing to rename the concept
+// That way, 
+// - a model will be a bit polluted but with a specific set of concepts, for legend purpose, prefixed so easily identifiable
+// - the same set can be used in multiple views, multiples legends as the associated text is set in a side note
+// - Specialization with images will have a distinct legend (but not if no Image)
+// 
+
+
+"use strict";
+
+load(__DIR__ + 'misc.js');
+
+log.level = LogLevel.INFO
+
+// # Functions
+
+/**
+ * TitleCase the parameter, changing dash in space
+ * @param {string} str
+ */
+function titleCase(str) {
+    let words = str.split("-").map( w => w.charAt(0).toUpperCase() + w.slice(1) )
+    let titlecase = words.join(" ")
+    return titlecase
+}
+
+// # Constants
+const GRID_SIZE = 12;
+const X_LEGEND_ORIGIN = GRID_SIZE;
+const Y_LEGEND_ORIGIN = GRID_SIZE;
+const PICTO_WIDTH = 30;
+const PICTO_HEIGHT = 30;
+const WIDTH_MARGIN = GRID_SIZE / 2;
+const HEIGHT_MARGIN = GRID_SIZE / 2;
+const X_PICTO = X_LEGEND_ORIGIN + WIDTH_MARGIN;
+const X_LABEL = X_PICTO + PICTO_WIDTH + WIDTH_MARGIN;
+const LABEL_WIDTH = 15 * GRID_SIZE;
+const LEGEND_WIDTH = 3* WIDTH_MARGIN + PICTO_WIDTH + LABEL_WIDTH;
+const ELEMENT_PREFIX = ".legend.";
+const LEGEND_LABEL = "Legend";
+const LEGEND_COLOR = "#F7F7F7";
+// const legendGradient = 
+const LABEL_BORDER = BORDER.NONE;
+const LABEL_OPACITY = 0;
+// const noteOutlineOpacity = 0;
+
+const typeInfo = {
+    
+    "resource": {order: 10},
+    "capability": {order: 11},
+    "course-of-action": {order: 12},
+    "value-stream": {order: 13},
+
+    "business-actor": {order: 100, figure: 1},
+    "business-role": {order: 101},
+    "business-collaboration": {order: 102},
+    "business-interface": {order: 103},
+    "business-process": {order: 104},
+    "business-function": {order: 105},
+    "business-interaction": {order: 106},
+    "business-event": {order: 107},
+    "business-service": {order: 108},
+    "business-object": {order: 109},
+    "contract": {order: 110},
+    "representation": {order: 111},
+    "product": {order: 112},
+    
+    "application-component": {order: 200, figure: 1},
+    "application-collaboration": {order: 201},
+    "application-interface": {order: 202},
+    "application-function": {order: 203},
+    "application-process": {order: 204},
+    "application-interaction": {order: 205},
+    "application-event": {order: 206},
+    "application-service": {order: 207},
+    "data-object": {order: 208},
+
+    "node": {order: 300, figure:1},
+    "device": {order: 301},
+    "system-software": {order: 302},
+    "technology-collaboration": {order: 303},
+    "technology-interface": {order: 304},
+    "path": {order: 305},
+    "communication-network": {order: 306},
+    "technology-function": {order: 307},
+    "technology-process": {order: 308},
+    "technology-interaction": {order: 309},
+    "technology-event": {order: 310},
+    "technology-service": {order: 311},
+    "artifact": {order: 312},
+
+    "equipment": {order: 350},
+    "facility": {order: 351},
+    "distribution-network": {order: 352},
+    "material": {order: 353},
+
+    "location": {order: 400},
+    
+    "stakeholder": {order: 500},
+    "driver": {order: 510},
+    "assessment": {order: 520},
+    "goal": {order: 530},
+    "outcome": {order: 540},
+    "principle": {order: 550},
+    "constraint": {order: 560},
+    "requirement": {order: 570},
+    "meaning": {order: 580},
+    "value": {order: 590},
+
+    "work-package": {order: 600},
+    "deliverable": {order: 610},
+    "implementation-event": {order: 620},
+    "plateau": {order: 630},
+    "gap": {order:640}
+}
+
+const TYPESPE_SEP = '|'
+
+
+// # Main    
+console.clear();
+log.info("> Generate diagram legend:");
+
+/**
+ * 
+ * @returns {ArchimateView}
+ */
+function getCurrentView() {
+    return $(selection).filter("archimate-diagram-model").first();
+}
+
+const CURRENT_VIEW = getCurrentView()
+
+if (!CURRENT_VIEW) {
+    log.error("> No view identified: exiting.");
+    exit();
+}
+
+
+// Loop through all elements used in selected view and store unique typenames in set
+var typesFoundSet = new Set();
+$(CURRENT_VIEW).find("element").each(
+    /**
+     * 
+     * @param {VisualObject} concept 
+     */
+    function (concept) {
+        const blacklist = [/junction/, /grouping/]
+        // only if type is interesting
+        if (!blacklist.some(re => re.test(concept.type))) {
+            // if specialization with image, we add it specifically
+            log.debug(`examining ${concept} <${concept.specialization}>`)
+            let entry = concept.type;
+            if (concept.specialization && concept.model.findSpecialization(concept.specialization, concept.type).image) {
+                entry = concept.type + TYPESPE_SEP + concept.specialization
+            }
+            if (!typesFoundSet.has(entry)) {
+                log.info(`Found legend item '${entry}'`)
+                typesFoundSet.add(entry)
+            }
+        }
+    }
+);
+
+/**
+ * Custom sort order for "type[|specialization]" string array, based of types sort index ( @see typeInfo )
+ * @param {string} x an object "type[|specialization]" 
+ * @param {string} y an object "type[|specialization]" 
+ * @returns {number} 1 if x >= y, -1 otherwise
+ */
+function sortTypes (x, y) {
+    // removing possible specialization
+    let [x_type, x_spe] = x.split(TYPESPE_SEP, 2);
+    let [y_type, y_spe] = y.split(TYPESPE_SEP, 2);
+    log.trace(`x, y sort info: ${x} = ${x_type} | ${x_spe}, ${y} = ${y_type} | ${x_spe}`)
+    let x_index = typeInfo[x_type].order;
+    let y_index = typeInfo[y_type].order;
+    // specialization ordered alphabetically for same type
+    return ( x_index == y_index ? (x_spe >= y_spe ? 1 : -1) : (x_index > y_index ? 1 : -1) )
+}
+
+// Then convert to array to sort it by layer and alphabetically
+const legendsFound = [...typesFoundSet].sort(sortTypes);
+log.info("types found:", JSON.stringify(legendsFound))
+
+// For each type found in the view
+for (let l of legendsFound) {
+    // Search the corresponding legend purpose element
+    // and if not found create it
+    let found = $("." + ELEMENT_PREFIX + l).first();
+    let [typ, spe] = l.split(TYPESPE_SEP, 2)
+    if (!found) {
+        log.debug(`creating legend object '${ELEMENT_PREFIX + l}' of type ${typ}`);
+        found = model.createElement(typ, ELEMENT_PREFIX + l);
+        found.specialization = spe
+    };
+    if (!found.documentation) {
+        // force a default value for the legend
+        found.documentation = titleCase(spe ? spe : typ)    
+    }
+
+};
+
+// Create the legend group 
+log.debug(`creating legend box`)
+const groupHeight = (PICTO_HEIGHT + HEIGHT_MARGIN) * legendsFound.length + HEIGHT_MARGIN + 24; // tab height
+const legendGroup = CURRENT_VIEW.createObject("group", X_LEGEND_ORIGIN, Y_LEGEND_ORIGIN, LEGEND_WIDTH, groupHeight, true);
+legendGroup.name = LEGEND_LABEL;
+legendGroup.fillColor = LEGEND_COLOR;
+legendGroup.borderType = BORDER.RECTANGLE;
+legendGroup.fontStyle = "bold";
+
+// Update 'y' value and groupHeight
+var y = Y_LEGEND_ORIGIN + PICTO_HEIGHT;
+for (let l of legendsFound) {
+    let pictogram = $("." + ELEMENT_PREFIX + l).first();
+    log.debug(`creating pictogram legend for ${pictogram}`)
+    // Add the concept sized specifically to illustrate pictogram, and a note to bear the text, both with autonesting
+    const visualElt = CURRENT_VIEW.add(pictogram, X_PICTO, y, PICTO_WIDTH, PICTO_HEIGHT, true);
+    visualElt.labelExpression = " ";
+    visualElt.figureType = (typeInfo[pictogram.type] || {}).figure || 0;
+    if (pictogram.specialization) {
+        visualElt.imageSource = IMAGE_SOURCE.SPECIALIZATION;
+        visualElt.imagePosition = IMAGE_POSITION.MIDDLE_CENTRE; // spelling!
+        visualElt.showIcon = SHOW_ICON.IF_NO_IMAGE;
+    }
+    const currentNote = CURRENT_VIEW.createObject("note", X_LABEL, y, LABEL_WIDTH, PICTO_HEIGHT, true);
+    currentNote.borderType = LABEL_BORDER;
+    currentNote.opacity = LABEL_OPACITY;
+    let conn = CURRENT_VIEW.createConnection(currentNote, visualElt);
+    conn.lineColor = LEGEND_COLOR
+//    currentNote.outlineOpacity = noteOutlineOpacity;
+    // default display is the associated legend element documentation
+    // currentNote.labelExpression = pictogram.documentation;
+    currentNote.text = "Displaying the associated pictogram documentation. See label"
+    currentNote.labelExpression = "$connection:target{documentation}";
+    y += PICTO_HEIGHT + HEIGHT_MARGIN;
+}
+
+console.log("> Ending properly");
+console.show();

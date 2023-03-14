@@ -1,0 +1,194 @@
+/*
+ * Import from CSV
+ * 
+ * Requires jArchi - https://www.archimatetool.com/blog/2018/07/02/jarchi/
+ * Requires PapaParse - https://www.papaparse.com/
+ * Works with Export to CSV Script - https://gist.github.com/smileham/15c445b17a92bd6f5dc1508e573bcd8a
+ * 
+ * Version 1: Import from CSV
+ * Version 1.1: Force character encoding to use UTF-8
+ * Version 2: Support for Specialization and creates "CSVImport-timestamp" view
+ * Version 2.1: Added formatting for CSVImport view, including groups to highlight match/new components.
+ *
+ * (c) 2018 Steven Mileham
+ *
+ */
+
+var debug = true;
+
+console.show();
+console.clear();
+console.log("> Import CSV");
+
+load(__DIR__ + "lib/papaparse.min.js");
+
+console.log("> Loaded Papa Parse");
+
+var filePath = window.promptOpenFile({ title: "Import CSV file", filterExtensions: ["*.csv"], fileName: "default.csv" });
+if (filePath) {
+    const FileReader = Java.type("java.io.FileReader");
+    const StandardCharsets = Java.type("java.nio.charset.StandardCharsets");
+    const theCSVFile = new FileReader(filePath, StandardCharsets.UTF_8);
+
+    var theCSV ="";
+    
+    var data = theCSVFile.read();
+    console.log("> Please Wait...");
+    while(data != -1) {
+        var theCharacter = String.fromCharCode(data);
+        theCSV+=theCharacter;
+        data = theCSVFile.read();
+    }
+    theCSVFile.close();
+
+    console.log("> File Loaded");
+    theDataFile = Papa.parse(theCSV, {delimiter: ";"});
+
+    theData = theDataFile.data;
+
+    theDataHeaders = theData[0];
+
+    var newGroupStart = 48;
+    var nameGroupStart = 180;
+    var uidGroupStart = 312;
+
+    var maxPerRow = 10;
+
+    var newGroupCount=0;
+    var nameGroupCount=0;
+    var uidGroupCount=0;
+
+    var newGroupRow=1;
+    var nameGroupRow=1;
+    var uidGroupRow=1;
+
+    var theDate = new Date();
+
+    var theView = model.createArchimateView("CSVImport-"+theDate.toString());
+
+    var templateObject = theView.createObject("note", 0, 0, -1, -1);
+    var templateHeight = templateObject.bounds.height;
+    var templateWidth = templateObject.bounds.width
+    templateObject.delete();
+
+    var titleNote = theView.createObject("note", 12, 12, maxPerRow*templateWidth, 24);
+    titleNote.text = "Import from:"+filePath+" on "+theDate.toString();
+    var newGroup = theView.createObject("diagram-model-group", 12, newGroupStart, maxPerRow*templateWidth, templateWidth);
+    newGroup.name = "New Elements";
+    var nameGroup = theView.createObject("diagram-model-group", 12, nameGroupStart, maxPerRow*templateWidth, templateWidth);
+    nameGroup.name = "Matched by Name";
+    var uidGroup = theView.createObject("diagram-model-group", 12, uidGroupStart, maxPerRow*templateWidth, templateWidth);
+    uidGroup.name = "Matched by UID";
+
+    var commonProperties = ["UID","Name", "Documentation","Type","Specialization"];
+
+    for (var i=1; i<theData.length; i++) {
+        var matchType = 3;
+        var theConcept = null;
+        var theObject = [];
+        for (var j=0; j<theDataHeaders.length; j++) {
+            theObject[theDataHeaders[j]]=theData[i][j];
+        }
+
+        theConcept = $("#"+theObject.UID).first();
+        if (!theConcept) {
+            debug? console.log("> Missing UID, checking Name"):true;
+            theConcept = $("."+theObject.Name).first();
+            matchType=2;
+            if (!theConcept || theConcept.length>1) {
+                debug? console.log("> Creating Concept"):true;
+                theConcept = model.createElement(theObject.Type,theObject.Name);
+                matchType=1;
+            }
+        }
+        debug? console.log(theConcept):true;
+
+        theConcept.name=theObject.Name;
+        theConcept.documentation=theObject.Documentation;
+        theConcept.type=theObject.Type;
+        if (theObject.Specialization!="")
+        {
+            theSpecializations = model.specializations;
+            for (var j=0; j<theSpecializations.length; j++) {
+                debug? console.log("> Checking Spec " + theSpecializations[j]):true;
+                if (theSpecializations[j].name==theObject.Specialization && theSpecializations[j].type == theObject.Type)
+                {
+                    debug? console.log("> Setting Spec " + theConcept.specialization):true;
+                    theConcept.specialization=theObject.Specialization;
+                }
+            }
+
+            if (theConcept.specialization == null && theObject.Specialization)
+            {
+                debug? console.log("> Creating Spec " + theObject.Specialization):true;
+                model.createSpecialization(theObject.Specialization, theObject.Type);
+                theConcept.specialization=theObject.Specialization;
+            }
+            
+        }
+
+        for (var j=0; j<theDataHeaders.length; j++) {
+            switch (theDataHeaders[j]) {
+                case "UID":
+                case "Name":
+                case "Documentation":
+                case "Type":
+                case "Specialization":
+                    break;
+                default:
+                    if (theObject[theDataHeaders[j]]) {
+                        theConcept.prop(theDataHeaders[j],theObject[theDataHeaders[j]]);
+                    }
+                    else {
+                        theConcept.removeProp(theDataHeaders[j]);
+                    }
+            }
+        }
+        newGroup.bounds = {x:newGroup.bounds.x, y:newGroup.bounds.y, width:maxPerRow*templateWidth,height:(templateHeight+12)*newGroupRow+24};
+        nameGroup.bounds = {x:nameGroup.bounds.x, y:newGroup.bounds.y+newGroup.bounds.height+12, width:maxPerRow*templateWidth,height:(templateHeight+12)*nameGroupRow+24};
+        uidGroup.bounds = {x:uidGroup.bounds.x, y:nameGroup.bounds.y+nameGroup.bounds.height+12, width:maxPerRow*templateWidth,height:(templateHeight+12)*uidGroupRow+24};
+        
+        switch (matchType) {
+            case 3:
+                uidGroupCount++;
+                if (uidGroupCount>=maxPerRow)
+                {
+                    uidGroupRow++;
+                    uidGroupCount=1;
+                }
+                theGroupStart = uidGroup.bounds.y;
+                theGroupCount = uidGroupCount;
+                theGroupRow = uidGroupRow;
+                break;
+            case 2:
+                debug? console.log("> Name Group Width " +nameGroup.bounds.width):true;
+                nameGroupCount++;
+                if (nameGroupCount>=maxPerRow)
+                {
+                    nameGroupRow++;
+                    nameGroupCount=1;
+                }
+                theGroupStart = nameGroup.bounds.y;
+                theGroupCount = nameGroupCount;
+                theGroupRow = nameGroupRow;
+                debug? console.log("> NEW Name Group Width " +nameGroup.bounds.width):true;
+                break;
+            case 1:
+                newGroupCount++;
+                if (newGroupCount>=maxPerRow)
+                {
+                    newGroupRow++;
+                    newGroupCount=1;
+                }
+                theGroupStart = newGroup.bounds.y;
+                theGroupCount = newGroupCount;
+                theGroupRow = newGroupRow;
+                break;
+        }
+        var theViewObject = theView.add(theConcept, (theGroupCount*templateWidth)-(templateWidth-12)+(theGroupCount*12), theGroupStart+12+((theGroupRow-1)*templateHeight)+(theGroupRow*12), -1, -1, true);
+    }
+    console.log("> Parsing Complete")
+}
+else {
+    console.log("> Cancelled");
+}

@@ -1,0 +1,126 @@
+﻿
+/*
+ * Distribute relationships between elements
+ * source: https://forum.archimatetool.com/index.php?topic=1174.0
+ */
+ 
+console.clear();
+//console.show();
+
+var view = selection.parents().filter('archimate-diagram-model').first();
+
+elements = selection.filter('element');
+e1 = selection.filter('element').first();
+e2 = selection.filter('element').not($(e1)).first();
+if(!e1 || !e2) {  window.alert('2 elements joined by relation(s) have to be selected'); exit(); }
+rels = $(e1).rels().filter(function(r) { return r.source.id === e2.id || r.target.id === e2.id; });
+if(!rels.size()) {  window.alert('2 elements have to share relation(s)'); exit(); }
+
+// get absolute position of e1 and e2 elements
+function absolutePosition(accumulator, current) {
+  return {x:(accumulator.x + current.bounds.x), y:(accumulator.y + current.bounds.y)}; 
+}
+var e1AbsPosition = Java.from($(e1).parents().not('folder').not('archimate-diagram-model')).reduce(absolutePosition, {x:e1.bounds.x, y:e1.bounds.y});
+var e2AbsPosition = Java.from($(e2).parents().not('folder').not('archimate-diagram-model')).reduce(absolutePosition, {x:e2.bounds.x, y:e2.bounds.y});
+
+// get absolute position of e1 and e2 centers
+var e1CenterPosition = {x: e1AbsPosition.x + Math.round(e1.bounds.width/2), y: e1AbsPosition.y + Math.round(e1.bounds.height/2)};
+var e2CenterPosition = {x: e2AbsPosition.x + Math.round(e2.bounds.width/2), y: e2AbsPosition.y + Math.round(e2.bounds.height/2)};
+
+// parameters
+var verticalMaxStep = 20;
+var horizontalMaxStep = 30;
+
+// determine which layout to apply
+if ((e1AbsPosition.y >= e2AbsPosition.y && e1AbsPosition.y <= e2AbsPosition.y + e2.bounds.height)
+  || (e2AbsPosition.y >= e1AbsPosition.y && e2AbsPosition.y <= e1AbsPosition.y + e1.bounds.height)) {
+  layout = 'horizontal';
+} else if((e1AbsPosition.x >= e2AbsPosition.x && e1AbsPosition.x <= e2AbsPosition.x + e2.bounds.width)
+  || (e2AbsPosition.x >= e1AbsPosition.x && e2AbsPosition.x <= e1AbsPosition.x + e1.bounds.width)) {
+  layout = 'vertical';
+} else {
+  layout = 'angled';
+  window.alert('No common surface between the 2 elements');
+  exit;
+} 
+
+if (layout === 'horizontal') {
+ 
+  // set x bendoints. Same for all relation : centered
+  if(e1AbsPosition.x <= e2AbsPosition.x) {
+    startX = e2AbsPosition.x - (e1AbsPosition.x + e1.bounds.width) + e1.bounds.width/2;
+    endX = - (e2AbsPosition.x - (e1AbsPosition.x + e1.bounds.width) + e2.bounds.width/2);
+  } else {
+    startX = e1AbsPosition.x - (e2AbsPosition.x + e2.bounds.width) + e2.bounds.width/2;
+    endX = - (e1AbsPosition.x - (e2AbsPosition.x + e2.bounds.width) + e1.bounds.width/2);
+  }
+
+  // determine e1 and e2 vertical intersection informations
+  minAbsY = Math.max(e1AbsPosition.y, e2AbsPosition.y);
+  maxAbsY = Math.min((e1AbsPosition.y + e1.bounds.height), (e2AbsPosition.y + e2.bounds.height));
+  sharedHeight = maxAbsY - minAbsY;
+ 
+  // determine step, vertical distance between flows
+  step = Math.round(Math.min(sharedHeight/(rels.size()+1), verticalMaxStep));
+  currentStep = Math.round(- step * (rels.size()-1)/2);
+ 
+  // set y bendpoints on each relations
+  rels.each(function (r) {
+    r.deleteAllBendpoints();
+    if (r.source.id === e1.id) {
+      startY = minAbsY + sharedHeight/2 - e1CenterPosition.y + currentStep;
+      endY = minAbsY + sharedHeight/2 - e2CenterPosition.y + currentStep;
+    } else {
+      startY = minAbsY + sharedHeight/2 - e2CenterPosition.y + currentStep;
+      endY = minAbsY + sharedHeight/2 - e1CenterPosition.y + currentStep;
+    }
+    r.addRelativeBendpoint({ startX:startX, startY:startY, endX:endX, endY:endY }, 0);
+    currentStep += step;
+  });
+
+} else if(layout === 'vertical') {
+
+
+  // determine e1 and e2 horizontal intersection informations
+  minAbsX = Math.max(e1AbsPosition.x, e2AbsPosition.x);
+  maxAbsX = Math.min((e1AbsPosition.x + e1.bounds.width), (e2AbsPosition.x + e2.bounds.width));
+  sharedWidth = maxAbsX - minAbsX;
+
+  // determine stepX, horizontal distance between flows
+  stepX = Math.round(Math.min(sharedWidth/(rels.size()+1), horizontalMaxStep));
+  currentStepX = Math.round(- stepX * (rels.size()-1)/2);
+
+  // determine stepY, vertical distance between flows
+  minAbsY = Math.min((e1AbsPosition.y + e1.bounds.height), (e2AbsPosition.y + e2.bounds.height));
+  maxAbsY = Math.max(e1AbsPosition.y, e2AbsPosition.y);
+  RelationDistance = maxAbsY - minAbsY;
+ 
+  stepY = Math.round(Math.min(RelationDistance/(rels.size()+1), verticalMaxStep));
+  currentStepY = Math.round(- stepY * (rels.size()-1)/2);
+
+  // set x bendpoints on each relations
+  rels.each(function (r) {
+    r.deleteAllBendpoints();
+   
+    if (r.source.id === e1.id) {
+      startX = minAbsX + sharedWidth/2 - e1CenterPosition.x + currentStepX;
+      endX = minAbsX + sharedWidth/2 - e2CenterPosition.x + currentStepX;
+    } else {
+      startX = minAbsX + sharedWidth/2 - e2CenterPosition.x + currentStepX;
+      endX = minAbsX + sharedWidth/2 - e1CenterPosition.x + currentStepX;
+    }
+   
+    // set y bendoints. Same for all relation : centered
+    if(e1AbsPosition.y <= e2AbsPosition.y) {
+      startY = e2AbsPosition.y - (e1AbsPosition.y + e1.bounds.height) + e1.bounds.height/2 + currentStepY;
+      endY = - (e2AbsPosition.y - (e1AbsPosition.y + e1.bounds.height) + e2.bounds.height/2) + currentStepY;
+    } else {
+      startY = e1AbsPosition.y - (e2AbsPosition.y + e2.bounds.height) + e2.bounds.height/2 + currentStepY;
+      endY = - (e1AbsPosition.y - (e2AbsPosition.y + e2.bounds.height) + e1.bounds.height/2) + currentStepY;
+    }
+   
+    r.addRelativeBendpoint({ startX:startX, startY:startY, endX:endX, endY:endY }, 0);
+    currentStepX += stepX;
+    currentStepY += stepY;
+  });
+}

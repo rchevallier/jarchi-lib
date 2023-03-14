@@ -1,0 +1,29 @@
+﻿/*
+ * Basic statistics
+ */
+
+ /**
+  * Right justify the input 
+  * @param {*} input any
+  * @param {int} len  the padding length, default 6
+  * @param {string} padding the padding character, default space
+  */
+function rightJustify(input, len = 6, padding = ' ') {
+    text = input.toString()
+    text_len = text.length()
+    if (text_len >= len) {
+        return text
+    } else {
+        return padding.repeat(len - text_len) + text
+    }
+}
+
+console.clear();
+console.log(`All count:\t${rightJustify($('*').size())}`);
+console.log(`| Concepts count:\t${rightJustify($('concept').size())}`);
+console.log(`| | Elements count:\t${rightJustify($('element').size())}`);
+console.log(`| | Relationships count:\t${rightJustify($('relationship').size())}`);
+console.log(`| Folders count:\t${rightJustify($('folder').size())}`);
+console.log(`| Views count:\t${rightJustify($('view').size())}`);
+console.show();
+

@@ -1,0 +1,294 @@
+﻿/*
+ * Merge elememt
+ *
+ * Select two elements and merge them
+ *
+ * (c) 2018 Jean-Baptiste Sarrodie, Phillip Beauvoir, (c) 2022 Thomas Rohde, Gerald Groot Roessink.
+ *
+ * This work is licensed under the HUMANS Licence described below.
+ *
+ * The HUMANS (Help Us Make Archi Noteworthy & Sustainable) licence goal is to bring happiness
+ * to both Archi users and developers.
+ *
+ * The only restrictions that apply are:
+ *  - You can't redistribute this script.
+ *  - You can't use this script for commercial purposes
+ */
+
+
+/*
+Author: Thomas Klok Rohde
+Description: Proof-of-concept of how to use a Browser to collect form data.
+*/
+
+console.show();
+console.clear();
+
+var el_selection = selection.filter("element");
+
+if(el_selection.size() != 2) {
+  window.alert("You have to select two elements to run this script.");
+  exit();
+}
+if(el_selection[0].type != el_selection[1].type) {
+  window.alert("You have to select two elements of the same type.");
+  exit();
+}
+
+
+//create a shell
+const SWT = Java.type('org.eclipse.swt.SWT');
+const FillLayout = Java.type('org.eclipse.swt.layout.FillLayout');
+const Shell = Java.type('org.eclipse.swt.widgets.Shell');
+const Browser = Java.type('org.eclipse.swt.browser.Browser');
+const ProgressAdapter = Java.extend(Java.type('org.eclipse.swt.browser.ProgressAdapter'));
+const LocationAdapter = Java.extend(Java.type('org.eclipse.swt.browser.LocationAdapter'));
+const CustomFunction = Java.extend(Java.type('org.eclipse.swt.browser.BrowserFunction'));
+const IArchiImages = Java.type('com.archimatetool.editor.ui.IArchiImages');
+const ImageFactory = Java.type('com.archimatetool.editor.ui.ImageFactory');
+
+let display = shell.getDisplay();
+let newShell = new Shell(display, SWT.MODAL | SWT.TITLE | SWT.ON_TOP | SWT.SHELL_TRIM);
+newShell.setText("Merging elements");
+newShell.setLayout(new FillLayout());
+
+	
+//create the html for the shell
+var output=createTable(el_selection);
+html=html_part1()+output+html_part3() ;
+
+// take the user-input
+let okPressed = false;
+let cancelPressed = false;
+let browser = new Browser(newShell, SWT.NONE);
+let value = {};
+
+browser.addProgressListener(new ProgressAdapter({
+	completed: function (event) {
+		let fncOk = new CustomFunction(browser, "okPressedEvent", {
+			function: function (args) {
+				okPressed = true;
+				value = JSON.parse(args[0]);
+			}
+		});
+		let fncCancel = new CustomFunction(browser, "cancelPressedEvent", {
+			function: function (args) {
+				cancelPressed = true;
+			}
+		});
+		browser.addLocationListener(new LocationAdapter({
+			changed: function (e) {
+				browser.removeLocationListener(this);
+				fncOk.dispose();
+				fncCancel.dispose();
+			}
+		}));
+	}
+}));
+
+browser.setText(html);
+
+// Set icon to Archi icon, in case shell has a style which displays icons
+newShell.setImage(IArchiImages.ImageFactory.getImage(IArchiImages.ICON_APP));
+newShell.setSize(900, 650);
+newShell.setLocation(300, 300);
+newShell.open();
+
+while (!newShell.isDisposed() && !okPressed && !cancelPressed) {
+	if (!display.readAndDispatch()) display.sleep();
+}
+
+if (okPressed) {
+
+	if (value.choice=="elm1") {	
+	  var merge_target= el_selection.get(0);
+	  var merge_origin= el_selection.get(1);
+	  removeDocAndProps(merge_origin);
+	}
+	if (value.choice=="elm2") {		
+	  var merge_target= el_selection.get(1);
+	  var merge_origin= el_selection.get(0);
+	  removeDocAndProps(merge_origin);
+	}
+	if (value.choice=="elm12") {		
+	  var merge_target= el_selection.get(0);
+	  var merge_origin= el_selection.get(1);
+	  // do not remove doc en props
+	}
+    console.log('Merging "', merge_origin.name, '" into "', merge_target.name, '"');
+	concept(merge_target).merge(concept(merge_origin));
+	merge_origin.delete();
+
+	console.setTextColor(20, 100, 200);
+	console.log ("You can use undo (control-z) when result is unwanted ");
+
+}	
+else if (cancelPressed)
+	console.log('Dialog cancelled.');
+
+
+// end shell
+newShell.dispose();
+
+
+// --------------------------
+// if visual element change to model element
+function concept(o) {
+  if(o.concept)
+    return o.concept;
+  else
+    return o;
+}
+
+// remove documentation and properties
+function removeDocAndProps(c) {
+  c.documentation = "";
+  c.prop().forEach(function(p) {
+    c.removeProp(p);
+  });
+}
+
+// Function to create the html-table
+function createTable(el_selection){
+	//		console.log (el_selection);
+		var output='<table border="2" cellspacing="1" cellpadding="8" class="table">'
+
+		// Determine propertynames for selected elements
+		const  alltags = [] ;
+		el_selection.each(function(o) {
+		 for (i = 0; i<o.prop().length;i++) {alltags.push(o.prop()[i])};
+		});
+		const props = [...new Set(alltags)]; //make props unique
+
+		// Put the data in a table
+		var output=output+"<tr><th>Property</th>";
+		for (k = 0; k<el_selection.length;k++) {
+			var ks=k+1;
+			output=output+"<td>Element "+ks+"</td>";
+		};
+		output=output+"</tr>";
+
+		output=output+"<tr><td>Name</td>";
+		el_selection.each(function(o) {
+			output=output+"<td>"+o.name+"</td>";
+		});
+		output=output+"</tr>";
+
+		output=output+"<tr><td>Documentation</td>";
+		el_selection.each(function(o) {
+			output=output+"<td>"+o.documentation+"</td>";
+		});
+		output=output+"</tr>";
+
+		for (j = 0; j<props.length;j++) {
+			output=output+"<tr><td>"+props[j]+"</td>";
+			el_selection.each(function(o) {
+				propval=o.prop(props[j])== null ? "" : o.prop(props[j]);
+				output=output+"<td>"+propval+"</td>";
+			});
+			output=output+"</tr>";
+		};
+		output=output+"</table>";
+		return output;		
+};
+
+function html_part1(){
+	html_part1 = `<html>
+	<title>Eclipse browser</title>
+	<style>
+	*
+	{
+	  box-sizing: border-box;
+	}
+
+	table
+	{
+	  font-family: arial, sans-serif;
+	  border-collapse: collapse;
+	  width: 100%;
+	}
+
+	td, th {
+	  border: 1px solid #dddddd;
+	  text-align: left;
+	  padding: 8 px;
+	}
+
+	tr:nth-child(even) {
+	  background-color: #dddddd;
+	}
+
+
+	input[type=text], input[type=email], select {
+		padding: 5px;
+		margin:5px 0;
+		border-radius:5px;
+		border-width: 2px;
+		width: 100%;
+	}
+	fieldset {
+		margin: 10px;
+		border-width: 2px;
+		border-radius:5px;
+	}
+	button {
+		margin: 10px;
+		padding: 5px;
+		width: 100px;
+	}
+	</style>
+
+	<body>
+		<h2>Choose the element to keep or combine both</h2>`;
+	return html_part1;
+}
+
+function html_part3(){
+	html_part3=`
+	<p>
+	Choose the element with the preferable documentation and properties or choose to combine.
+    Existing diagram instances of the other ArchiMate element will be replaced.
+    All source and target relationships of the other element are set to this element.
+	</p>
+	
+    <fieldset>
+		<legend>Choose the element to keep or combine both</legend>
+		<!-- Radio button with value -->
+		<input type="radio" id="elm1" name="choice" value="elm1" checked>
+		<label for="elm1">Element 1</label>
+		<input type="radio" id="elm2" name="choice" value="elm2">
+		<label for="elm2">Element 2</label>
+		<input type="radio" id="elm12" name="choice" value="elm12">
+		<label for="elm12">Both</label>
+    </fieldset>
+    <button onclick="okPressed()">Ok</button>
+	<button onclick="cancelPressed()">Cancel</button>
+    <script>
+        function okPressed() {
+
+				var radios = document.getElementsByName('choice');
+				function get_checked_radio(radios) {
+					for (var r = 0; r < radios.length; r++) {
+						var current = radios[r];
+						if (current.checked) {
+							return current;
+						}
+					}
+				};
+
+//				alert(get_checked_radio(radios).value);
+				
+	            let value = {
+				choice: get_checked_radio(radios).value
+				};
+			
+
+			okPressedEvent(JSON.stringify(value)); 
+        }
+        function cancelPressed() {
+            cancelPressedEvent();
+        }
+    </script>
+</body></html>`;
+	return html_part3;
+}

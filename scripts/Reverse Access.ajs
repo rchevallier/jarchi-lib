@@ -1,0 +1,31 @@
+/*
+  Script: Reverse Access
+  
+  A jArchi script for use on an Archi repository
+  
+  Purpose: Reverse all selected access relationships Access Type direction (e.g. read -> write / write -> read)
+  Useful as the default access type for an access relationship is 'write'. This allows several to be reversed.
+
+  Author: Richard Heward - Tame Blue Lion
+  Date: 28-Feb-2019
+  
+*/
+
+console.clear();
+console.log("Reversing Access Relationships");
+
+var revCount = 0;
+var objList = $(selection).filter('access-relationship');
+
+objList.each(function (accessRel) {
+    if (accessRel.concept.accessType === 'read') {
+        revCount++;
+        accessRel.concept.accessType = 'write';
+    }
+    if (accessRel.concept.accessType === 'write') {
+        revCount++;
+        accessRel.concept.accessType = 'read';
+    }
+});
+
+console.log("Num relationships reversed: ", revCount);

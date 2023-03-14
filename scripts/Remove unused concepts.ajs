@@ -1,0 +1,18 @@
+﻿// Delete unused elements and relationships
+//
+// Requires jArchi - https://www.archimatetool.com/blog/2018/07/02/jarchi/
+//
+// This script will delete any element or relationship not used in at least one view
+//
+// (c) 2020 Jean-Baptiste Sarrodie
+
+var response = window.confirm("This script will delete any element or relationship not used in at least one view. Continue?");
+
+if (!response)
+  exit();
+
+$("concept").each(function(c) {
+  if($(c).objectRefs().isEmpty()) {
+    c.delete();
+  }
+});
