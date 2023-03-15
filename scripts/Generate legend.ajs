@@ -17,7 +17,7 @@
 
 "use strict";
 
-load(__DIR__ + 'misc.js');
+load(__DIR__ + 'lib/misc.js');
 
 log.level = LogLevel.INFO
 
