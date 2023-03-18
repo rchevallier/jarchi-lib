@@ -142,12 +142,8 @@ class ColorMap extends Map {
         return Array.from(this.values()).filter(v => v.included).every(v => v.isNumeric)
     }
 
-    // get labelsAsNumbers() {
-    //     return Array.from(this.values()).map(c => c.textAsNumber)
-    // }
-
     /**
-     * return the ColorMap with only the labels 
+     * return a new ColorMap filtered with only the labels passed as argument
      * @param {string[]} labels 
      * @returns {ColorMap}
      */
@@ -271,7 +267,7 @@ class ColorModel {
      * @param {HexColor} [defaultColor] Default color #RRGGBB if not found in a scheme, optional
      * @param {boolean} [resetDefault] flag, reset all other elements to their default color
      */
-    constructor (propertiesCollected, defaultColor= new HexColor("#F0F0F0"), resetDefault=true) {
+    constructor (propertiesCollected, defaultColor = new HexColor("#F0F0F0"), resetDefault=true) {
         log.debug(`properties collected: ${[...propertiesCollected.keys()]}`);
         this.undefinedColor = defaultColor;
         this.resetDefault = resetDefault;
@@ -388,9 +384,13 @@ class ColorModel {
         log.debug(`trying to load scheme for ${property}`);
         try {
             const content = read(__SCRIPTS_DIR__ + 'lib/Colormap.scheme/' + property.toLowerCase() + '.json')
-            const scheme = JSON.parse(content);
+            let scheme = JSON.parse(content);
             log.info(`Color scheme for ${property} loaded`);
             log.debug(content)
+            if (scheme.colormap !== undefined) {
+                // new structure for color scheme 
+                scheme = scheme.colormap
+            }
             const colormap = this._properties.get(property);
             colormap.forEach((_, label) => {
                 if (scheme[label]) 
@@ -405,9 +405,14 @@ class ColorModel {
     /**
      * Save the current color map
      * @param {string} property the property name, default is current
+     * @param {string} scaleType the scaleType, default is current
      */
-    saveColorScheme(property = this.property) {
-        const json = JSON.stringify(this.getColorScheme(property), undefined, 2);
+    saveColorScheme(property = this.property, scaleType = this.scaleType) {
+        const scheme = {
+            colormap: this.getColorScheme(property),
+            type: this.scaleType
+        }
+        const json = JSON.stringify(scheme, undefined, 2);
         log.info(`Saving scheme ${property}: ${json}`);
         jArchi.fs.writeFile(__SCRIPTS_DIR__ + 'lib/Colormap.scheme/' + property.toLowerCase() + ".json", json);
     }
@@ -415,7 +420,7 @@ class ColorModel {
     /**
      * @private
      * @param {string} property the property name
-     * @returns {{colormap: {}}} the color scheme of the current property as as simple object (for JSON serialization)
+     * @returns {{}} the color scheme of the current property as as simple object (for JSON serialization)
      */
     getColorScheme(property) {
         return Object.fromEntries(
