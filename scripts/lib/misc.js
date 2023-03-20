@@ -1,5 +1,8 @@
 "use strict";
 
+const JFile = Java.type('java.io.File');
+const JUrl = Java.type('java.net.URL');
+
 /**
  * Open and read the content of a text file/url, $.fs.write exists, but not read 
  * 
@@ -7,19 +10,17 @@
  * @returns {string} The content of the file
  */
  function read(url) {
-  const BufferedReader = Java.type('java.io.BufferedReader');;
+  const BufferedReader = Java.type('java.io.BufferedReader');
   const InputStreamReader = Java.type('java.io.InputStreamReader');
-  const File = Java.type('java.io.File');
-  const URL = Java.type('java.net.URL');
   
   let result = "";
   let urlObj = null;
 
   try {
-      urlObj = new URL(url);
+      urlObj = new JUrl(url);
   } catch (e) {
       // If the URL cannot be built, assume it is a file path.
-      urlObj = new URL(new File(url).toURI().toURL());
+      urlObj = new JUrl(new JFile(url).toURI().toURL());
   }
 
   const reader = new BufferedReader(new InputStreamReader(urlObj.openStream()));
@@ -32,6 +33,24 @@
   reader.close();
 
   return result;
+}
+
+
+/**
+ * Insure all directories in the path is created
+ * @param {string} path the relative (to __SCRIPTS_DIR__) or absolute path
+ * @returns {boolean} true if succeed
+ */
+function mkdirs(path) {
+  const file = new JFile(path);
+  if (!file.exists()) {
+    log.trace(`${path} doesn't exist, trying to create`)
+    const result = file.mkdirs();
+    log.trace(`creation success = ${result}`)
+    return result
+  } else {
+    return file.isDirectory()
+  }
 }
 
 

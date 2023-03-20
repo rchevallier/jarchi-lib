@@ -4,7 +4,6 @@
         "alwaysStrict": true,
         "target": "es2020"
     },
-    // "files": ["typings/globals.d.ts", "Lineage analysis.ajs", "test.ajs", "LineageAnalysis.js", "misc.js", "dependencies.js", "LineageConfigDialog.js", "GraalBug.ajs"],
     "files": [
         "typings/globals.d.ts",
         "lib/misc.js",

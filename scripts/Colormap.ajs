@@ -117,11 +117,18 @@ if (!theView) {
 
 const propertiesInView = gatherViewPropertiesInfo(theView);
 if (propertiesInView.size == 0) {
-    MessageDialog.openWarning(shell, "Warning", "No property found in these views elements");
+    MessageDialog.openError(shell, "No properties", "No property found among the views elements");
     log.error("No property found in these views elements. Stopping");
     exit();    
 }
 
+{
+    const dir = __SCRIPTS_DIR__ + 'lib/Colormap.scheme';
+    if (!mkdirs(dir)) {
+        MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
+        log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
+    }
+}
 // FIXME encapsulate for sharing state
 // wizModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js
 const FINISH = 0, CANCEL = 1

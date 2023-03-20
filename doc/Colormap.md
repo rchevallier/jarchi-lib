@@ -1,7 +1,6 @@
 # Colormap User's Guide
 
-Inspired from **Steven Mileham** [script](https://gist.github.com/smileham/4bbca832d8fe629b72beb4e2b9a4b7ea)[^1]
-, a completely redesigned Heatmap/Colormap function as a SWT Wizard to set a visual element background color based on it's property value.
+Inspired from **Steven Mileham** [script](https://gist.github.com/smileham/4bbca832d8fe629b72beb4e2b9a4b7ea) and [blog](https://smileham.co.uk/2022/06/15/archi-jarchi-and-rag-status-maps/), a completely redesigned Heatmap/Colormap function as a SWT Wizard to set a visual element background color based on it's property value.
 
 ## Installation
 Following files and directory structure MUST be copied to the jArchi scripting root directory.
@@ -34,7 +33,7 @@ The `(all labels)` checkbox is a short cut to mark or unmark all labels in the l
 
 As long as at least one label is selected, it is possible to progress to next page.
 
-if all labels selected are or starts with a number, it is possible to use a continuous color scheme instead of the standard categorical (= discrete) color scheme.
+if all selected labels are numeric or starts with a number, it is possible to use a **continuous** (= gradient) color scheme instead of the standard categorical (= discrete) color scheme.
 
 ![Numeric Labels](./img/Property%20labels%20selection%202.png)
 
@@ -64,17 +63,16 @@ In step 3), for both color schemes, you can save the current color settings as t
 
 ## Finish and Legend creation
 
-If extecution is asked (button `Finish` pressed), defined colors wil be applied to all elements in the view. 
+If execution is asked (button `Finish` pressed), defined colors wil be applied to all elements in the view. 
 
-A legend will be created (positionned by default in the top left corner of the view). If a previous legend was created, it will be replaced.
+A legend will be created (positioned by default in the top left corner of the view). If a previous legend was created, it will be replaced.
 
 #### Exemple For categorical scale
-![](./img/Category%20Scheme%20Result.png)
+![Categorical result](./img/Category%20Scheme%20Result.png)
 
 #### Exemple For continuous scale
 ![Continuous result](./img/Continuous%20color%20output.png)
 
-If the result doesn't fit, you can can cancel the modification by just selecting `Edit | Undo (CTRL-Z)` menu item (Reselect the view first).
+If the result doesn't suit, you can can cancel the modification by just selecting `Edit | Undo (CTRL-Z)` menu item (Reselect the view first if necessary).
 
-[^1] cf https://smileham.co.uk/2022/06/15/archi-jarchi-and-rag-status-maps/
 
