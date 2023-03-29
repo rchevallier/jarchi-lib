@@ -3,7 +3,7 @@
 Inspired from **Steven Mileham** [script](https://gist.github.com/smileham/4bbca832d8fe629b72beb4e2b9a4b7ea) and [blog](https://smileham.co.uk/2022/06/15/archi-jarchi-and-rag-status-maps/), a completely redesigned Heatmap/Colormap function as a SWT Wizard to set a visual element background color based on it's property value.
 
 ## Installation
-Following files and directory structure MUST be copied to the jArchi scripting root directory.
+Following files and directory structure **MUST** be copied in the jArchi scripting directory and shall respect the tree structure.
 
 ```
 Colormap.ajs - Script entry point, to be launched
@@ -26,8 +26,7 @@ All properties found in any element displayed in the selected view are listed fo
 Selecting `Next >` will lead to ...
 
 ### 2) Labels selection step
-the page shows all possible labels associated with the selected property, and used in the selected view. It is possible to select only subset of the values using the checkbox.
-The `(all labels)` checkbox is a short cut to mark or unmark all labels in the list.
+the page shows all possible labels associated with the selected property, and used in the selected view. It is possible to select only subset of the values using the checkbox. The `(all labels)` checkbox is a short cut to check or uncheck all labels in the list.
 
 ![Labels selection](./img/Property%20labels%20selection.png)
 
@@ -40,6 +39,7 @@ if all selected labels are numeric or starts with a number, it is possible to us
 ### 3.a) Categorical scheme 
 
 in this page, you can set a specific color per property label, by either double clicking the color, or using the `Set color` button.
+A color which are has not be defined yet for a property label is represented by ![Unknown color](./img/UnknownColor.png).
 
 ![Categorical](./img/Category%20scheme%20colors.png)
 
@@ -51,7 +51,8 @@ the `Default scheme` section is explained below
 
 ### 3.b) Continuous scheme 
 
-In this scheme, you define the colors for the lowest and hight numerical values of the property labels. A gradient color scheme is applied to each label numerical value.
+In this scheme, you define the colors for the lowest and hight numerical values of the property labels. A gradient color scheme is applied to each label numerical value. A color which are has not be defined yet for a property label is represented by ![Unknown color](./img/UnknownColor.png).
+
 
 ![Continuous](./img/Continuous%20scheme%20colors.png)
 
@@ -67,10 +68,10 @@ If execution is asked (button `Finish` pressed), defined colors wil be applied t
 
 A legend will be created (positioned by default in the top left corner of the view). If a previous legend was created, it will be replaced.
 
-#### Exemple For categorical scale
+#### Example for categorical scale
 ![Categorical result](./img/Category%20Scheme%20Result.png)
 
-#### Exemple For continuous scale
+#### Example for continuous scale
 ![Continuous result](./img/Continuous%20color%20output.png)
 
 If the result doesn't suit, you can can cancel the modification by just selecting `Edit | Undo (CTRL-Z)` menu item (Reselect the view first if necessary).

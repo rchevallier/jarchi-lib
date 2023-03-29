@@ -41,9 +41,9 @@ class ImageRegistry {
     }
 
     /**
-     * Convert RGB color as hexa string format #RRGGBB to SWT RGB object
+     * Convert RGB color as hexadecimal string format #RRGGBB to SWT RGB object
      *
-     * @param {HexColor} hex an RGB color in hexa form #RRGGBB
+     * @param {HexColor} hex an RGB color in hexadecimal form #RRGGBB
      * @returns {JavaObject} the SWT RGB object
      */
     static hexToSwtRGB(hex) {
@@ -52,10 +52,10 @@ class ImageRegistry {
     }
 
     /**
-     * convert to Hexa string format #RRGGBB a tuple of 3 components colors
+     * convert to hexadecimal string format #RRGGBB a tuple of 3 components colors
      *
      * @param {RGB} rgb SWT RGB object
-     * @returns {HexColor} RGB value in hexa string #rrggbb
+     * @returns {HexColor} RGB value in hexadecimal string #rrggbb
      */
     static swtRGBToHex(rgb) {
         return HexColor.fromRGB(rgb.red, rgb.green, rgb.blue);
@@ -65,7 +65,7 @@ class ImageRegistry {
      * Create a colorized rectangular shaped SWT image
      *
      * @private
-     * @param {HexColor} hex in hexa form "#RRGGBB"
+     * @param {HexColor} hex in hexadecimal form "#RRGGBB"
      * @param {number} width in pixel
      * @param {number} height in pixel
      * @param {string} [text] optional short text, centered inside image
@@ -99,13 +99,13 @@ class ImageRegistry {
      * Returns and create if doesn't exist an colorized rectangular shaped SWT image
      * Store it in cache
      *
-     * @param {HexColor} hex in hexa form "#RRGGBB"
+     * @param {HexColor} hex in hexadecimal form "#RRGGBB"
      * @param {string} text the text content if any
      * @returns {JavaObject} the SWT Image
      */
     getImage(hex) {
         if (hex == undefined) {
-            log.trace(`Undefined color, returning unknowImage`)
+            log.trace(`Undefined color, returning unknownImage`)
             return this.unknownImage;
         }
         const width = this.defaultWidth;

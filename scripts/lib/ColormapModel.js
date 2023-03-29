@@ -14,10 +14,10 @@
 class HexColor extends String {
 
     /**
-     * helper method to convert integer to Hexa
+     * helper method to convert integer to hexadecimal
      * @param {number} i integer value
      * @param {number} pad numbers of 0 padding 
-     * @returns {string} hexa value
+     * @returns {string} hexadecimal value
      */
     static intToHex(i, pad = 2) {
         return i.toString(16).toUpperCase().padStart(pad, '0')
@@ -422,8 +422,8 @@ class ContinuousScale {
 
 
 /**
- * Store the properties and associated labels colors to be managed visualy thru the Wizard
- * Responsibility is to be the bridge between the Jscript Archi actions and the SWT Wizard
+ * Store the properties and associated labels colors to be managed visually thru the Wizard
+ * Responsibility is to be the bridge between the JArchi script actions and the SWT Wizard
  * @type {Map<string, ColorMap>}
  */
 class ColorModel extends Map {

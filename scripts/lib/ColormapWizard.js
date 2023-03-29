@@ -105,7 +105,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
             wizardUI.labelsTable.addListener (SWT.Selection, (e) => {
                 try {
                     const evtKind = e.detail == SWT.CHECK ? 'Check' : 'Selection';
-                    log.trace("*** CLIC! ", e.item + " " + evtKind + " " + e.item.getChecked());
+                    log.trace("*** CLICK! ", e.item + " " + evtKind + " " + e.item.getChecked());
                     if (e.detail == SWT.CHECK) {
                         log.trace("... on ", e.item.getText(), wizardUI.allLabelsCheckbox.getText());
                         if (e.item == wizardUI.allLabelsCheckbox) {
@@ -176,9 +176,9 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
          * 
          * @param {ColorMap} colormap 
          */
-        function updateLabelCheckmarks(colormap) {
+        function updateLabelCheckMarks(colormap) {
             assert(colormap != undefined)
-            log.trace(`${updateLabelCheckmarks.name}: updating checkmark states`);
+            log.trace(`${updateLabelCheckMarks.name}: updating check mark states`);
             const table = wizardUI.labelsTable;
             const updated = [...colormap.keys()];
 
@@ -203,11 +203,11 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
 
         try {
             if (visible) {
-                model.registerModelChangeObserver(updateLabelCheckmarks);
+                model.registerModelChangeObserver(updateLabelCheckMarks);
                 const table = wizardUI.labelsTable;
                 // clean all labels except '(Select all)'
                 if (table.getItemCount() > 1) table.remove(1, table.getItemCount()-1);
-                // fillup with current labels
+                // fill up with current labels
                 for (const cl of model.colormap.values()) {
                     log.trace(`adding "${cl}"`)
                     let t = new TableItem(table, SWT.NONE);
@@ -215,11 +215,11 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                     t.setData(cl);  // associate the ColorLabel
                 }
                 // set their initial state from model
-                updateLabelCheckmarks(model.colormap); 
+                updateLabelCheckMarks(model.colormap); 
                 // store subset of tableItems without the 1st item "(all labels)"
                 // wizardUI.labelItems = Java.from(table.getItems()).slice(1);
             } else {
-                model.removeModelChangeObserver(updateLabelCheckmarks);
+                model.removeModelChangeObserver(updateLabelCheckMarks);
             }
         } catch (err) {   
             log.info(err.toString(), ":",  Java.isJavaObject(err) ? Java.typeName(err): typeof(err) )
@@ -287,7 +287,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
 
             WidgetFactory
                 .label(SWT.NONE)
-                .text('Select one or more labels, double-Clic or clic "Set Color" to define the color')
+                .text('Select one or more labels, double-click or click "Set Color" to define the color')
                 .layoutData(GridDataFactory.fillDefaults().span(2, 1).create())
                 .create(container);
 
@@ -618,7 +618,7 @@ const WIZARD_SUBCLASS_EXTENSION = {
 
 /**
  * Store the shared variables between wizards pages and inside a page, as not possible to add attributes to 
- * an extended JavaClass instance in JS GraalVM (allows only overriden method)
+ * an extended JavaClass instance in JS GraalVM (allows only overridden method)
  */
 const wizardUI = {
     /**
@@ -669,7 +669,7 @@ const wizardUI = {
 let imageRegistry; // shared global
 
 /**
- * Execute the Wiward to update colorModel
+ * Execute the Wizard to update colorModel
  * FIXME merge with WizardUI ?
  * @returns {boolean} if Wizard finished
  */

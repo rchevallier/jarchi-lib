@@ -21,7 +21,7 @@ load(__DIR__ + "lib/ColormapWizard.js")
 
 
 /**
- * Will gather all properties of all elements visual objets in the view (no relationships)
+ * Will gather all properties of all elements visual objects in the view (no relationships)
  * and for each property, the set of found values
  * TODO: extend to support relationship schemes
  * @param {ArchimateView} view the view to gather from
