@@ -1,18 +1,23 @@
-//  
-// Generate diagram legend 
-//  
-// inspired David GERARD 
-// 2021 Robert Chevallier
-//  
-// requires ES6 (GraalVM)
-// For a selected view, create a group named 'Legend', in which will be nested for each concepts type found in view
-// - a concept, specifically sized to show the pictogram
-// - a note, to be used to name or explain the concept specifically in the view, hence preventing to rename the concept
-// That way, 
-// - a model will be a bit polluted but with a specific set of concepts, for legend purpose, prefixed so easily identifiable
-// - the same set can be used in multiple views, multiples legends as the associated text is set in a side note
-// - Specialization with images will have a distinct legend (but not if no Image)
-// 
+/**
+ *   
+ * Generate diagram legend 
+ * inspired by work of David GERARD 
+ * 
+ * @copyright 2021-2023 
+ * @author rchevallier
+ * @license Apache-2.0
+ * @see {@link ../LICENSE-2.0.txt}
+ *  
+ * requires GraalVM
+ * For a selected view, create a group named 'Legend', in which will be nested for each concepts type found in view
+ * - a concept, specifically sized to show the pictogram
+ * - a note, to be used to name or explain the concept specifically in the view, hence preventing to rename the concept
+ * That way, 
+ * - a model will be a bit polluted but with a specific set of concepts, for legend purpose, prefixed so easily identifiable
+ * - the same set can be used in multiple views, multiples legends as the associated text is set in a side note
+ * - Specialization with images will have a distinct legend (but not if no Image)
+ * 
+ */
 
 
 "use strict";
@@ -48,10 +53,10 @@ const LEGEND_WIDTH = 3* WIDTH_MARGIN + PICTO_WIDTH + LABEL_WIDTH;
 const ELEMENT_PREFIX = ".legend.";
 const LEGEND_LABEL = "Legend";
 const LEGEND_COLOR = "#F7F7F7";
-// const legendGradient = 
+// * const legendGradient = 
 const LABEL_BORDER = BORDER.NONE;
 const LABEL_OPACITY = 0;
-// const noteOutlineOpacity = 0;
+// * const noteOutlineOpacity = 0;
 
 const typeInfo = {
     
@@ -230,7 +235,7 @@ for (let l of legendsFound) {
     visualElt.figureType = (typeInfo[pictogram.type] || {}).figure || 0;
     if (pictogram.specialization) {
         visualElt.imageSource = IMAGE_SOURCE.SPECIALIZATION;
-        visualElt.imagePosition = IMAGE_POSITION.MIDDLE_CENTRE; // spelling!
+        visualElt.imagePosition = IMAGE_POSITION.MIDDLE_CENTER; 
         visualElt.showIcon = SHOW_ICON.IF_NO_IMAGE;
     }
     const currentNote = CURRENT_VIEW.createObject("note", X_LABEL, y, LABEL_WIDTH, PICTO_HEIGHT, true);
@@ -238,7 +243,6 @@ for (let l of legendsFound) {
     currentNote.opacity = LABEL_OPACITY;
     let conn = CURRENT_VIEW.createConnection(currentNote, visualElt);
     conn.lineColor = LEGEND_COLOR
-//    currentNote.outlineOpacity = noteOutlineOpacity;
     // default display is the associated legend element documentation
     // currentNote.labelExpression = pictogram.documentation;
     currentNote.text = "Displaying the associated pictogram documentation. See label"

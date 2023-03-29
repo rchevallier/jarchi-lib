@@ -3,7 +3,7 @@
  */
  console.clear()
 
- load (__DIR__ + "misc.js")
+ load (__SCRIPTS_DIR__ + "lib/misc.js")
  log.level = LogLevel.INFO
  log.info("=== script started")
 

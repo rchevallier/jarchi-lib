@@ -1,8 +1,17 @@
-"use strict";
+/**
+ * SWT image utilities classes for ColormapWizard.js script
+ * 
+ * @license Apache-2.0 cf LICENSE-2.0.txt
+ * @author rchevallier
+ * @copyright 2023 rchevallier
+ * @see {@link ./doc/Colormap.md}
+ * @see {@link ../Colormap.ajs}
+ * @see {@link ./ColormapWizard.ajs}
+ */
 
 const RGB = Java.type('org.eclipse.swt.graphics.RGB');
 const Color = Java.type('org.eclipse.swt.graphics.Color');
-const SwtImage = Java.type('org.eclipse.swt.graphics.Image');
+const SWTImage = Java.type('org.eclipse.swt.graphics.Image');
 const GC = Java.type('org.eclipse.swt.graphics.GC');
 
 /**
@@ -20,16 +29,15 @@ class ImageRegistry {
     /**
      * @param {number} width optional override default width for images (24 pixel)
      * @param {number} height optional override default height for images (24 pixel)
-     * @param {HexColor[]} rgbs optional initial image(s) created to fill the cache, in format #RRGGBB
      */
-    constructor(width = 24, height = 24, ...rgbs) {
+    constructor(width = 24, height = 24, unknownColor, unknownText) {
         /** @type {Map<string,JavaObject>} */
         this.cache = new Map();
         this.defaultWidth = width;
         this.defaultHeight = height;
-        for (const rgb of rgbs) {
-            this.getImage(rgb);
-        }
+        this.unknownColor = unknownColor;
+        // Create the unknown image per default
+        this.unknownImage = this._createPaletteImage(unknownColor, width, height, unknownText);
     }
 
     /**
@@ -60,19 +68,25 @@ class ImageRegistry {
      * @param {HexColor} hex in hexa form "#RRGGBB"
      * @param {number} width in pixel
      * @param {number} height in pixel
-     * @param {JavaObject} device  the SWT device
+     * @param {string} [text] optional short text, centered inside image
+     * @param {JavaObject} [device]  the SWT device
      * @returns {JavaObject} the SWT Image
      */
-    _createPaletteImage(hex, width, height, device = ImageRegistry.device) {
-        const image = new SwtImage(device, width, height);
+    _createPaletteImage(hex, width, height, text, device = ImageRegistry.device) {
+        const image = new SWTImage(device, width, height);
         const trio = hex.toRGB();
         const lineColor = device.getSystemColor(SWT.COLOR_WIDGET_BORDER);
         const fillColor = new Color(device, ...trio);
         const gc = new GC(image);
         try {
             gc.setBackground(fillColor);
-            gc.setForeground(lineColor);
             gc.fillRectangle(1, 1, width - 2, height - 2);
+            if (text !== undefined) {
+                const textWidth = gc.stringExtent(text).x;
+                gc.setForeground(device.getSystemColor(SWT.COLOR_DARK_RED));
+                gc.drawText(text, Math.floor(Math.abs(width - textWidth) / 2), 0);
+            }
+            gc.setForeground(lineColor);
             gc.drawRectangle(0, 0, width - 1, height - 1);
         } finally {
             gc.dispose();
@@ -86,11 +100,16 @@ class ImageRegistry {
      * Store it in cache
      *
      * @param {HexColor} hex in hexa form "#RRGGBB"
-     * @param {number} width in pixel (use default)
-     * @param {number} height in pixel (use default)
+     * @param {string} text the text content if any
      * @returns {JavaObject} the SWT Image
      */
-    getImage(hex, width = this.defaultWidth, height = this.defaultHeight) {
+    getImage(hex) {
+        if (hex == undefined) {
+            log.trace(`Undefined color, returning unknowImage`)
+            return this.unknownImage;
+        }
+        const width = this.defaultWidth;
+        const height = this.defaultHeight;
         const key = `${hex}:${width}x${height}`;
         if (!this.cache.has(key)) {
             log.trace(`Image not found, creating ${key}`);
@@ -113,33 +132,40 @@ class ImageRegistry {
      */
     _createGradientImage(color1, color2, width, height, device = ImageRegistry.device) {
 
-        log.trace(`gradient size is ${width}x${height}`);
-        const image = new SwtImage(device, width, height);
+        log.trace(`gradient size is ${width}x${height} for colors ${color1} to ${color2}`);
+        const image = new SWTImage(device, width, height);
         const gc = new GC(image);
-        const col1 = new Color(ImageRegistry.hexToSwtRGB(color1));
-        const col2 = new Color(ImageRegistry.hexToSwtRGB(color2));
+        const c1 = new Color(ImageRegistry.hexToSwtRGB(color1));
+        const c2 = new Color(ImageRegistry.hexToSwtRGB(color2));
         try {
-            gc.setForeground(col1);
-            gc.setBackground(col2);
+            gc.setForeground(c1);
+            gc.setBackground(c2);
             gc.fillGradientRectangle(0, 0, width, height, false);
         } finally {
             gc.dispose();
-            col1.dispose();
-            col2.dispose();
+            c1.dispose();
+            c2.dispose();
         }
         return image;
     }
 
 
     /**
-     * Create a gradient image from 2 colors, store it in cache
+     * Get a gradient image from 2 colors from cache, store it in cache if needs to be created
      * 
-     * @param {HexColor} color1 Gradient start color
-     * @param {HexColor} color2 Gradient end color
+     * @param {HexColor} color1 Gradient start color, can be undefined
+     * @param {HexColor} color2 Gradient end color, can be undefined
      * @param {JavaObject} bounds SWT Bound object
      * @returns {JavaObject} an SWT gradient image
      */
     getGradientImage(color1, color2, bounds) {
+        // handle undefined colors
+        if (!color1 || !color2) {
+            // no gradient in this case, even if 1 extremity color is defined
+            color1 = this.unknownColor;
+            color2 = this.unknownColor;
+        }
+        log.trace(`creating gradient color ${color1} to ${color2} `)
         const width = bounds.width;
         const height = bounds.height;
         const key = `${color1}-${color2}:${width}x${height}`;

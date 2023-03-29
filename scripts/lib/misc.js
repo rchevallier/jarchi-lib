@@ -1,3 +1,12 @@
+/**
+ * Common utilities for jArchi scripts
+ * 
+ * @license Apache-2.0 cf LICENSE-2.0.txt
+ * @author rchevallier
+ * @copyright 2023 rchevallier
+ * @see {@link ./doc/Colormap.md}
+ */
+
 "use strict";
 
 const JFile = Java.type('java.io.File');
@@ -44,12 +53,9 @@ const JUrl = Java.type('java.net.URL');
 function mkdirs(path) {
   const file = new JFile(path);
   if (!file.exists()) {
-    log.trace(`${path} doesn't exist, trying to create`)
-    const result = file.mkdirs();
-    log.trace(`creation success = ${result}`)
-    return result
+    return file.mkdirs();
   } else {
-    return file.isDirectory()
+    return file.isDirectory();
   }
 }
 

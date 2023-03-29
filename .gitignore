@@ -1,7 +1,6 @@
 scripts/.vscode
-scripts/lib/Colormap.scheme/*.json
-scripts/home/test*.ajs
 scripts/examples/*
-scripts/*.json
-scripts/*.csv
+*.json
+*.csv
+test*.ajs
 scripts/ZZ. Examples/*

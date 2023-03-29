@@ -1,5 +1,7 @@
-﻿/*
+﻿/**
  * Change all selected elements name to SnakeCase (from SnakeCase or CamelCase)
+ * @license Apache-2.0
+ * @author rchevallier
  */
 
 /**
