@@ -203,7 +203,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
 
         try {
             if (visible) {
-                model.addObserver(updateLabelCheckmarks);
+                model.registerModelChangeObserver(updateLabelCheckmarks);
                 const table = wizardUI.labelsTable;
                 // clean all labels except '(Select all)'
                 if (table.getItemCount() > 1) table.remove(1, table.getItemCount()-1);
@@ -219,7 +219,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 // store subset of tableItems without the 1st item "(all labels)"
                 // wizardUI.labelItems = Java.from(table.getItems()).slice(1);
             } else {
-                model.removeObserver(updateLabelCheckmarks);
+                model.removeModelChangeObserver(updateLabelCheckmarks);
             }
         } catch (err) {   
             log.info(err.toString(), ":",  Java.isJavaObject(err) ? Java.typeName(err): typeof(err) )
@@ -374,7 +374,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
         
         try {
             if (visible) {
-                model.addObserver(updateColorImages);
+                model.registerModelChangeObserver(updateColorImages);
                 // FIXME move to previous page when deciding the scaleType?
                 wizardUI.catColorTable.removeAll();
                 for (const cl of model.colormap.selection) {
@@ -385,7 +385,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                 updateColorImages(model.colormap)
                 pageCategoryColor.setTitle(`Labels colors for '${model.property}'`);
             } else {
-                model.removeObserver(updateColorImages);
+                model.removeModelChangeObserver(updateColorImages);
             }
         } catch (err) {
             log.info(err.toString())
@@ -562,7 +562,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
 
         try {
             if (visible) {
-                model.addObserver(updateColorsPreview);
+                model.registerModelChangeObserver(updateColorsPreview);
 
                 // creating the scale for current selection
                 model.scale = new ContinuousScale(model);
@@ -584,7 +584,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 // Using this property as meaning "has been shown at least once"
                 // pageContinuousColor.setPageComplete(true);
             } else {
-                model.removeObserver(updateColorsPreview)
+                model.removeModelChangeObserver(updateColorsPreview)
             }
         } catch(err) {
             log.info(err.toString())

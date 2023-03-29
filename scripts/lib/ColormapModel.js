@@ -198,7 +198,7 @@ class ColorMap extends Map {
      */
     _fireEvent(labels) {
         if (this.model != undefined)
-            model.fireEvent(labels, this)
+            model.notifyModelChange(labels, this)
     }
 
     allExcluded() {
@@ -278,7 +278,7 @@ class ColorMap extends Map {
      */
     loadColorScheme() {
         log.debug(`trying to load scheme for ${this.name}`);
-        // FIXME handle case of ContinuousScale
+        // FIXME handle case of ContinuousScale (scaleType)
         try {
             const content = read(__SCRIPTS_DIR__ + 'lib/Colormap.scheme/' + this.name.toLowerCase() + '.json');
             let scheme = JSON.parse(content);
@@ -318,12 +318,12 @@ class ColorMap extends Map {
     /**
      * @private
      * @param {string} property the property name
-     * @returns {{}} the color scheme of the color map as as simple object (for JSON serialization)
+     * @returns {{[x:string]: HexColor}} the color scheme of the color map as as simple object (for JSON serialization)
      */
     _getColorScheme() {
         return Object.fromEntries(
-            Array.from(this)
-                .map(([label, colorLabel]) => [label, colorLabel.color]));
+                    Array.from(this)
+                        .map(([label, colorLabel]) => [label, colorLabel.color]));
         }
     
 }
@@ -410,7 +410,7 @@ class ContinuousScale {
         } else {
             log.info("Undefined color at extremities. Gradient not calculated")
         }
-        this.model.fireEvent(this.model.colormap.labels(true));
+        this.model.notifyModelChange(this.model.colormap.labels(true));
     }
 
 }
@@ -431,10 +431,10 @@ class ColorModel extends Map {
      * @param {{[x:string]: string[]}} collected 
      */
     constructor (collected) {
-        super(Object.entries(collected).map(([name,labels]) => [name, new ColorMap(name, labels)]))
-        this.forEach(colormap => colormap.model = this)
+        super(Object.entries(collected).map(([name,labels]) => [name, new ColorMap(name, labels)]));
+        this.forEach(colormap => colormap.model = this);
         // Set default property as 1st in list
-        assert(this.size >0, "No property found")
+        assert(this.size >0, "No property found");
         // default is 1st of list
         this._colormap = this.entries().next().value[1];
         log.debug(`properties collected: ${[...this.keys()]}`);
@@ -456,7 +456,7 @@ class ColorModel extends Map {
      * @param {boolean} removeOther Force cleaning of observers. 
      * NB: Added as the Wizard usually call the visible(false) to previous tab *AFTER* the visible(true) for current tab
      */
-    addObserver(f, removeOther = true) {
+    registerModelChangeObserver(f, removeOther = true) {
         if (removeOther) this._observers.clear();
         log.debug(`Adding observer ${f.name}`);
         this._observers.add(f);
@@ -465,7 +465,7 @@ class ColorModel extends Map {
     /**
      * @param {ObserverCallback} f
      */
-    removeObserver(f) {
+    removeModelChangeObserver(f) {
         log.debug(`Removing observer ${f.name}`);
         this._observers.delete(f);
     }
@@ -474,13 +474,11 @@ class ColorModel extends Map {
      * shall be triggered on LabelColor changes 
      * @package
      * @param {string[]} labels 
-     * @param {ColorMap} colormap default is current one
      */
-    fireEvent(labels, colormap = this.colormap) {
+    notifyModelChange(labels) {
         log.trace(`Firing event...`);
-        const changed = colormap.subset(labels);
+        const changed = this.colormap.subset(labels);
         log.debug(`Firing event for ${[...changed.keys()]}`);
-        // if (this._observers.size > 0)
         this._observers.forEach(
             (f) => {
                 log.trace(`... callback for ${f.name}`);
@@ -539,7 +537,7 @@ class ColorModel extends Map {
         for (const label of labels) {
             this.colormap.get(label).color = color;
         }
-        this.fireEvent(labels);
+        this.notifyModelChange(labels);
     }
 
 }

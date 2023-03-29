@@ -160,16 +160,17 @@ const LogLevel = {
 * @param {boolean} assertion the assertion expression result
 * @param {string} msg the msg to display on console when assertion failed
 */
-function assert(assertion, msg) {
+function assert(assertion, msg = "") {
   if (!assertion) {
-      msg = "Assertion failed: " + msg
+      msg = "Assertion failed! " + msg
       console.error(msg)
-      throw {message:msg}
+      throw {message: msg}
   }        
 }
 
 
 const MessageDialog = Java.type('org.eclipse.jface.dialogs.MessageDialog');
+// Usage exemples:
 // MessageDialog.openConfirm(shell, "Confirm", "Please confirm");
 // MessageDialog.openError(shell, "Error", "Error occured");
 // MessageDialog.openInformation(shell, "Info", "Info for you");
