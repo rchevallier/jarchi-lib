@@ -47,18 +47,20 @@ function gatherViewPropertiesInfo(view) {
 
 
 /**
+ * @typedef {{colormap: {[x: string]: string}, name: string, type: string, resetDefault: boolean}} ColorScheme
+ * 
  * Apply to the view the heatmap as configured by the wizard
  * @param {ArchimateView} view 
- * @param {ColorMap} colormap 
+ * @param {ColorScheme} scheme
  */
-function applyColormap(view, colormap)
+function applyColormap(view, scheme)
 {
     $(view).find("element").each(
         (vo) => {
-            const label = vo.prop(colormap.name);
-            if (label && colormap.get(label) && colormap.get(label).included) {
-                vo.fillColor = colormap.get(label).color;
-            } else if (colormap.resetDefault) {
+            const label = vo.prop(scheme.name);
+            if (label && (label in scheme.colormap)) {
+                vo.fillColor =  scheme.colormap[label];
+            } else if (scheme.resetDefault) {
                 vo.fillColor = null
             }
         }
@@ -69,9 +71,9 @@ function applyColormap(view, colormap)
 /**
  * Create the associated legend in the view
  * @param {ArchimateView} view 
- * @param {ColorModel} model 
+ * @param {ColorScheme} scheme 
  */
-function createLegend(view, model) {
+function createLegend(view, scheme) {
     const GRID_SIZE = 12;
     const X_MARGIN = GRID_SIZE / 2;
     const Y_MARGIN = GRID_SIZE / 2;
@@ -84,17 +86,17 @@ function createLegend(view, model) {
     const LEGEND_BACKGROUND = "#F7F7F7";
     const LEGEND_FONT_STYLE = "bold";
 
-    const isCategorical = model.colormap.scaleType == ColorMap.CATEGORICAL;
+    const isCategorical = scheme.type == "Categorical";
     const spacing = (isCategorical) ? Y_MARGIN : 0;
 
     const currentLegend = $(view).find("." + LEGEND_NAME).filter("diagram-model-group")
-    if (currentLegend && model.colormap.resetDefault) {
+    if (currentLegend && scheme.resetDefault) {
         log.info(`previous ${LEGEND_NAME} found, deleting`)
         currentLegend.delete();
     }
     const legendGroup = view.createObject(
         "diagram-model-group", X_LEGEND_ORIGIN, Y_LEGEND_ORIGIN, LEGEND_WIDTH, 
-            COLOR_HEIGHT + (COLOR_HEIGHT + spacing) * model.colormap.selection.length + spacing
+            COLOR_HEIGHT + (COLOR_HEIGHT + spacing) * Object.keys(scheme.colormap).length + spacing
         );
     legendGroup.name = LEGEND_NAME;
     legendGroup.fillColor = LEGEND_BACKGROUND;
@@ -102,15 +104,15 @@ function createLegend(view, model) {
     legendGroup.borderType = BORDER.RECTANGLE;
 
     let y = COLOR_HEIGHT;
-    // FIXME diff ??
-    const selected = isCategorical ? model.colormap.selection : model.scale.selection;
-    for (let colLabel of selected) {
-        log.trace(`legend color is ${colLabel.color} for label '${colLabel.text}'`);
+    // FIXME sort order is different, only reason to access scale
+    // will be handled by return Object keys order
+    for (let label in scheme.colormap) {
+        log.trace(`legend color is ${scheme.colormap[label]} for label '${label}'`);
         let colLegend = legendGroup.createObject("diagram-model-note", X_MARGIN, y, COLOR_WIDTH, COLOR_HEIGHT);
         y += COLOR_HEIGHT + spacing -1;
-        colLegend.fillColor = colLabel.color.toString();
+        colLegend.fillColor = scheme.colormap[label].toString();
         colLegend.borderType = isCategorical ? BORDER.RECTANGLE : BORDER.NONE;
-        colLegend.text = model.colormap.name + " = " + colLabel.text;
+        colLegend.text = scheme.name + " = " + label;
     }
 }
 
@@ -141,13 +143,12 @@ if (Object.keys(propertiesInView).length == 0) {
     }
 }
 
-// FIXME colorModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
+// FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
 cModel = new ColorModel(propertiesInView);
-// FIXME Wizard shall return a ColorMap, null if cancelled
-if (wizardExecute()) {
-    log.info(theView.name)
-    applyColormap(theView, cModel.colormap);
-    createLegend(theView, cModel);
+const scheme = wizardExecute();
+if (scheme) {
+    applyColormap(theView, scheme);
+    createLegend(theView, scheme);
 } else {
     log.warn("execution cancelled");
 }

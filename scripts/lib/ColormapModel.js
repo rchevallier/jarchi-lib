@@ -302,29 +302,32 @@ class ColorMap extends Map {
     
     /**
      * Save the current color map
-     * @param {string} scaleType the scaleType, default is current
      */
-    saveColorScheme(scaleType = this.scaleType) {
-        const scheme = {
-            colormap: this._getColorScheme(),
-            type: this.scaleType,
-            resetDefault: this.resetDefault
-        }
-        const json = JSON.stringify(scheme, undefined, 2);
+    saveColorScheme() {
+        const json = JSON.stringify(this.getColorScheme(), undefined, 2);
         log.info(`Saving scheme ${this.name}: ${json}`);
         jArchi.fs.writeFile(__SCRIPTS_DIR__ + 'lib/Colormap.scheme/' + this.name.toLowerCase() + ".json", json);
     }
 
+
     /**
-     * @private
-     * @returns {{[x:string]: HexColor}} the color scheme of the color map as as simple object (for JSON serialization)
+     * 
+     * @returns {ColorScheme} the color scheme as simple JSON objects
      */
-    _getColorScheme() {
-        return Object.fromEntries(
-                    Array.from(this)
-                        .map(([label, colorLabel]) => [label, colorLabel.color]));
+    getColorScheme() {
+        const selected = this.selection;
+        if (this.scaleType == ColorMap.CONTINUOUS) {
+            selected.sort((a, b) => a.textAsNumber - b.textAsNumber)
         }
-    
+        const colormap = selected.map(((cl) => [cl.text, cl.color.toString()]));
+        const scheme = {
+            name:  this.name,
+            colormap: Object.fromEntries(colormap),
+            type: this.scaleType,
+            resetDefault: this.resetDefault
+        }
+        return scheme;
+    }
 }
 
 /**
@@ -545,6 +548,7 @@ class ColorModel extends Map {
  * @type {ColorModel}
  * 
  * Global variable :-( singleton to manage the state thru the Wizard
+ * FIXME!
  */
 var cModel;
 

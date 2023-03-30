@@ -671,7 +671,7 @@ let imageRegistry; // shared global
 /**
  * Execute the Wizard to update colorModel
  * FIXME merge with WizardUI ?
- * @returns {boolean} if Wizard finished
+ * @returns {ColorScheme} if Wizard finished, null if cancelled
  */
 function wizardExecute() 
 {
@@ -689,7 +689,11 @@ function wizardExecute()
         const wizardDialog = new JWizardDialog(shell, colorMapWizard);
         const FINISH = 0, CANCEL = 1;
         log.trace("Ready to open")
-        return wizardDialog.open() == FINISH;
+        if (wizardDialog.open() == FINISH) {
+            return cModel.colormap.getColorScheme();
+        } else {
+            return null
+        }
     } finally {
         colorMapWizard.dispose();
         imageRegistry.dispose();        

@@ -1,15 +1,15 @@
 # jarchi-lib
 
-Collection of jArchi scripts either collected on the net (and sometimes extended), or developped by myself, to help with [Archimate](https://www.archimatetool.com/) usage.
+Collection of jArchi scripts either collected on the net (and sometimes extended), or developed by myself, to help with [Archimate](https://www.archimatetool.com/) usage.
 
-The license of this work is APACHE Licence 2.0, as described in [LICENSE-2.0](./LICENSE-2.0.txt) for my own work.
+The license of this work is APACHE License 2.0, as described in [LICENSE-2.0](./LICENSE-2.0.txt) for my own work.
 
-Collected scripts are respective copyright and licence by the original author.
+Collected scripts are respective copyright and license by the original author.
 
 # How to use
 ## Prerequisites
-Tested with Archi 4.9, 4.10 and 5.0 and latest jArchi plugin (v1.3.1)
-jArchi shall use the GraalVM javascript interpreter (4.x versions).
+Tested with Archi 4.9, 4.10 and 5.0 and latest jArchi plugin (v1.3.1, v1.4.0)
+jArchi **MUST** use the GraalVM javascript interpreter (4.x versions).
 
 ## Installation
 Just copy the necessary `.ajs` and associated `.js` scripts/libraries to your own jarchi `__SCRIPT_DIR__` or clone this project and point to it.
@@ -18,7 +18,7 @@ Just copy the necessary `.ajs` and associated `.js` scripts/libraries to your ow
 
 # Noteworthy scripts 
 
-Custom organic grown developped or adapted by yours truly, without any ChatGpt inside :-) 
+Custom organic grown developed or adapted by yours truly, without any ChatGpt inside :-) 
 
 The `.ajs` except when noted, resides in the `scripts` directory
 

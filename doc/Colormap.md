@@ -39,7 +39,7 @@ if all selected labels are numeric or starts with a number, it is possible to us
 ### 3.a) Categorical scheme 
 
 in this page, you can set a specific color per property label, by either double clicking the color, or using the `Set color` button.
-A color which are has not be defined yet for a property label is represented by ![Unknown color](./img/UnknownColor.png).
+A property label which color has not been defined yet is represented by ![Unknown color](./img/UnknownColor.png).
 
 ![Categorical](./img/Category%20scheme%20colors.png)
 
@@ -51,7 +51,7 @@ the `Default scheme` section is explained below
 
 ### 3.b) Continuous scheme 
 
-In this scheme, you define the colors for the lowest and hight numerical values of the property labels. A gradient color scheme is applied to each label numerical value. A color which are has not be defined yet for a property label is represented by ![Unknown color](./img/UnknownColor.png).
+In this scheme, you define the colors for the lowest and hight numerical values of the property labels. A gradient color scheme is applied to each label numerical value. A property label which color has not been defined yet is represented by ![Unknown color](./img/UnknownColor.png).
 
 
 ![Continuous](./img/Continuous%20scheme%20colors.png)
