@@ -79,8 +79,8 @@ function createLegend(view, scheme) {
     const Y_MARGIN = GRID_SIZE / 2;
     const COLOR_HEIGHT = 30;
     const COLOR_WIDTH = 12 * GRID_SIZE;
-    const X_LEGEND_ORIGIN = GRID_SIZE;
-    const Y_LEGEND_ORIGIN = GRID_SIZE;
+    let X_LEGEND_ORIGIN = GRID_SIZE;
+    let Y_LEGEND_ORIGIN = GRID_SIZE;
     const LEGEND_WIDTH = 2 * X_MARGIN + COLOR_WIDTH;
     const LEGEND_NAME = "Color Legend";
     const LEGEND_BACKGROUND = "#F7F7F7";
@@ -89,9 +89,11 @@ function createLegend(view, scheme) {
     const isCategorical = scheme.type == "Categorical";
     const spacing = (isCategorical) ? Y_MARGIN : 0;
 
-    const currentLegend = $(view).find("." + LEGEND_NAME).filter("diagram-model-group")
+    const currentLegend = $(view).find("." + LEGEND_NAME).filter("diagram-model-group").first();
     if (currentLegend && scheme.resetDefault) {
         log.info(`previous ${LEGEND_NAME} found, deleting`)
+        X_LEGEND_ORIGIN = currentLegend.bounds.x; 
+        Y_LEGEND_ORIGIN = currentLegend.bounds.y;
         currentLegend.delete();
     }
     const legendGroup = view.createObject(
