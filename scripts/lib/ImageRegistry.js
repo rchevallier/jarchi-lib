@@ -100,7 +100,6 @@ class ImageRegistry {
      * Store it in cache
      *
      * @param {HexColor} hex in hexadecimal form "#RRGGBB"
-     * @param {string} text the text content if any
      * @returns {JavaObject} the SWT Image
      */
     getImage(hex) {
@@ -128,7 +127,7 @@ class ImageRegistry {
      * @param {number} width image width
      * @param {number} height image height
      * @param {JavaObject} [device] SWT Device
-     * @returns {SwtImage}
+     * @returns {SWTImage}
      */
     _createGradientImage(color1, color2, width, height, device = ImageRegistry.device) {
 

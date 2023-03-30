@@ -198,7 +198,7 @@ class ColorMap extends Map {
      */
     _fireEvent(labels) {
         if (this.model != undefined)
-            model.notifyModelChange(labels, this)
+            this.model.notifyModelChange(labels)
     }
 
     allExcluded() {
@@ -317,7 +317,6 @@ class ColorMap extends Map {
 
     /**
      * @private
-     * @param {string} property the property name
      * @returns {{[x:string]: HexColor}} the color scheme of the color map as as simple object (for JSON serialization)
      */
     _getColorScheme() {
@@ -547,5 +546,5 @@ class ColorModel extends Map {
  * 
  * Global variable :-( singleton to manage the state thru the Wizard
  */
-var model;
+var cModel;
 

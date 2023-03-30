@@ -7,8 +7,6 @@
  * @see {@link ./doc/Colormap.md}
  */
 
-"use strict";
-
 load(__DIR__ + "lib/misc.js");
 log.level = LogLevel.TRACE;
 if (log.level <= LogLevel.DEBUG) {
@@ -33,7 +31,7 @@ function gatherViewPropertiesInfo(view) {
      */
     const props = new Map(); 
     $(view).find("element").each (
-        function(e) {
+        (e) => {
             for (let p of e.prop()) {
                 if (!props.has(p))
                     props.set(p, new Set())
@@ -71,9 +69,9 @@ function applyColormap(view, colormap)
 /**
  * Create the associated legend in the view
  * @param {ArchimateView} view 
- * @param {ColorMap} colormap 
+ * @param {ColorModel} model 
  */
-function createLegend(view, colormap) {
+function createLegend(view, model) {
     const GRID_SIZE = 12;
     const X_MARGIN = GRID_SIZE / 2;
     const Y_MARGIN = GRID_SIZE / 2;
@@ -86,17 +84,17 @@ function createLegend(view, colormap) {
     const LEGEND_BACKGROUND = "#F7F7F7";
     const LEGEND_FONT_STYLE = "bold";
 
-    const isCategorical = colormap.scaleType == ColorMap.CATEGORICAL;
+    const isCategorical = model.colormap.scaleType == ColorMap.CATEGORICAL;
     const spacing = (isCategorical) ? Y_MARGIN : 0;
 
     const currentLegend = $(view).find("." + LEGEND_NAME).filter("diagram-model-group")
-    if (currentLegend && colormap.resetDefault) {
+    if (currentLegend && model.colormap.resetDefault) {
         log.info(`previous ${LEGEND_NAME} found, deleting`)
         currentLegend.delete();
     }
     const legendGroup = view.createObject(
         "diagram-model-group", X_LEGEND_ORIGIN, Y_LEGEND_ORIGIN, LEGEND_WIDTH, 
-            COLOR_HEIGHT + (COLOR_HEIGHT + spacing) * colormap.selection.length + spacing
+            COLOR_HEIGHT + (COLOR_HEIGHT + spacing) * model.colormap.selection.length + spacing
         );
     legendGroup.name = LEGEND_NAME;
     legendGroup.fillColor = LEGEND_BACKGROUND;
@@ -104,15 +102,15 @@ function createLegend(view, colormap) {
     legendGroup.borderType = BORDER.RECTANGLE;
 
     let y = COLOR_HEIGHT;
-    // FIXME
-    const selected = isCategorical ? colormap.selection : colormap.scale.selection;
+    // FIXME diff ??
+    const selected = isCategorical ? model.colormap.selection : model.scale.selection;
     for (let colLabel of selected) {
         log.trace(`legend color is ${colLabel.color} for label '${colLabel.text}'`);
         let colLegend = legendGroup.createObject("diagram-model-note", X_MARGIN, y, COLOR_WIDTH, COLOR_HEIGHT);
         y += COLOR_HEIGHT + spacing -1;
         colLegend.fillColor = colLabel.color.toString();
         colLegend.borderType = isCategorical ? BORDER.RECTANGLE : BORDER.NONE;
-        colLegend.text = colormap.property + " = " + colLabel.text;
+        colLegend.text = model.colormap.name + " = " + colLabel.text;
     }
 }
 
@@ -129,7 +127,7 @@ if (!theView) {
 
 const propertiesInView = gatherViewPropertiesInfo(theView);
 
-if (propertiesInView.size == 0) {
+if (Object.keys(propertiesInView).length == 0) {
     MessageDialog.openError(shell, "No properties", "No property found among the views elements");
     log.error("No property found in these views elements. Stopping");
     exit();    
@@ -144,11 +142,12 @@ if (propertiesInView.size == 0) {
 }
 
 // FIXME colorModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
-model = new ColorModel(propertiesInView);
+cModel = new ColorModel(propertiesInView);
 // FIXME Wizard shall return a ColorMap, null if cancelled
 if (wizardExecute()) {
-    applyColormap(theView, model);
-    createLegend(theView, model.colormap);
+    log.info(theView.name)
+    applyColormap(theView, cModel.colormap);
+    createLegend(theView, cModel);
 } else {
     log.warn("execution cancelled");
 }

@@ -57,23 +57,23 @@ const pagePropertySelection = new ColorMapWizardPage("pagePropertySelection", {
             const list = new ListBox(container, SWT.BORDER | SWT.SINGLE);
             list.addSelectionListener(SelectionListener.widgetSelectedAdapter((e) => {
                 try {
-                    model.property = list.getSelection()[0];
-                    log.info(`Property ${model.property} selected`);
-                    pagePropertySelection.setPageComplete(model.hasProperty); // should never be false
+                    cModel.property = list.getSelection()[0];
+                    log.info(`Property ${cModel.property} selected`);
+                    pagePropertySelection.setPageComplete(cModel.hasProperty); // should never be false
                     // refresh CanFinish states
                     // pagePropertySelection.getWizard().getContainer().updateButtons();
                 } catch (err) {
                     log.error(err.toString())
                 }
             }));
-            list.setItems(Java.to(model.properties, StringArray));
+            list.setItems(Java.to(cModel.properties, StringArray));
             list.setLayoutData(new GridData(GridData.FILL_BOTH));
             list.setSelection(0);
     
             pagePropertySelection.setTitle('Select a property');
             pagePropertySelection.setDescription('Among the properties found in current view to be used to colorize the elements');
             pagePropertySelection.setControl(container);
-            pagePropertySelection.setPageComplete(model.hasProperty); // should never be false
+            pagePropertySelection.setPageComplete(cModel.hasProperty); // should never be false
             log.trace(` ... created`);
         } catch (error) {
             log.error(error.toString())            
@@ -111,11 +111,11 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                         if (e.item == wizardUI.allLabelsCheckbox) {
                             const state = wizardUI.allLabelsCheckbox.getChecked();
                             log.debug("All labels handling, setting to ", state);
-                            model.colormap.setSelection(model.colormap.labels(), state);
+                            cModel.colormap.setSelection(cModel.colormap.labels(), state);
                         } else  {
                             log.trace("Single label handling");
-                            log.debug(`'${e.item.getText()}' ColorLabel = ${JSON.stringify(model.colormap.get(e.item.getText()))} `)
-                            model.colormap.setSelection([e.item.getText()], e.item.getChecked());
+                            log.debug(`'${e.item.getText()}' ColorLabel = ${JSON.stringify(cModel.colormap.get(e.item.getText()))} `)
+                            cModel.colormap.setSelection([e.item.getText()], e.item.getChecked());
                         }
                     }
                 } catch (err) {
@@ -135,19 +135,19 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .button(SWT.RADIO)
                 .text("Categorical (text)")
                 .tooltip("Use a discrete color scheme")
-                .onSelect(e => model.colormap.scaleType = e.source.getData())
+                .onSelect(e => cModel.colormap.scaleType = e.source.getData())
                 .create(group);
             wizardUI.btnCategorical.setData(ColorMap.CATEGORICAL);
-            wizardUI.btnCategorical.setSelection(model.colormap.scaleType == ColorMap.CATEGORICAL);
+            wizardUI.btnCategorical.setSelection(cModel.colormap.scaleType == ColorMap.CATEGORICAL);
 
             wizardUI.btnContinuous = WidgetFactory
                 .button(SWT.RADIO)
                 .text("Continuous (numeric)")
                 .tooltip("Use a continuous (gradient) color scheme (for numeric labels only)")
-                .onSelect(e => model.colormap.scaleType = e.source.getData())
+                .onSelect(e => cModel.colormap.scaleType = e.source.getData())
                 .create(group);
             wizardUI.btnContinuous.setData(ColorMap.CONTINUOUS);
-            wizardUI.btnContinuous.setSelection(model.colormap.scaleType == ColorMap.CONTINUOUS)
+            wizardUI.btnContinuous.setSelection(cModel.colormap.scaleType == ColorMap.CONTINUOUS)
 
             WidgetFactory
                 .label(SWT.NONE)
@@ -157,7 +157,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .create(container);
 
             pageLabelsSelection.setDescription("Select the labels to colorize, and the type of color scale.");
-            pageLabelsSelection.setPageComplete(model.colormap.someIncluded());
+            pageLabelsSelection.setPageComplete(cModel.colormap.someIncluded());
             pageLabelsSelection.setControl(container);
             log.trace(` ... created`);
         } catch (err) {
@@ -170,7 +170,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
      */
     setVisible: function (visible)
     {
-        log.trace("Showing "+ pageLabelsSelection.getName() +"property: " + model.property);
+        log.trace("Showing "+ pageLabelsSelection.getName() +"property: " + cModel.property);
 
         /**
          * 
@@ -183,7 +183,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
             const updated = [...colormap.keys()];
 
             log.trace(`Setting (all labels) state`);
-            table.getItem(0).setChecked(model.colormap.allIncluded());
+            table.getItem(0).setChecked(cModel.colormap.allIncluded());
 
             for (const i of table.getItems()) {
                 const label = i.getText();
@@ -203,23 +203,23 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
 
         try {
             if (visible) {
-                model.registerModelChangeObserver(updateLabelCheckMarks);
+                cModel.registerModelChangeObserver(updateLabelCheckMarks);
                 const table = wizardUI.labelsTable;
                 // clean all labels except '(Select all)'
                 if (table.getItemCount() > 1) table.remove(1, table.getItemCount()-1);
                 // fill up with current labels
-                for (const cl of model.colormap.values()) {
+                for (const cl of cModel.colormap.values()) {
                     log.trace(`adding "${cl}"`)
                     let t = new TableItem(table, SWT.NONE);
                     t.setText(cl.text);
                     t.setData(cl);  // associate the ColorLabel
                 }
                 // set their initial state from model
-                updateLabelCheckMarks(model.colormap); 
+                updateLabelCheckMarks(cModel.colormap); 
                 // store subset of tableItems without the 1st item "(all labels)"
                 // wizardUI.labelItems = Java.from(table.getItems()).slice(1);
             } else {
-                model.removeModelChangeObserver(updateLabelCheckMarks);
+                cModel.removeModelChangeObserver(updateLabelCheckMarks);
             }
         } catch (err) {   
             log.info(err.toString(), ":",  Java.isJavaObject(err) ? Java.typeName(err): typeof(err) )
@@ -240,10 +240,10 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
 
     getNextPage: function ()
 	{    	
-        if (model.colormap.scaleType == ColorMap.CATEGORICAL) {
+        if (cModel.colormap.scaleType == ColorMap.CATEGORICAL) {
             log.info("NextPage:", pageCategoryColor.getName());
             return pageCategoryColor;
-		} else if (model.colormap.scaleType == ColorMap.CONTINUOUS) { 
+		} else if (cModel.colormap.scaleType == ColorMap.CONTINUOUS) { 
             log.info("NextPage:", pageContinuousColor.getName());
 			return pageContinuousColor;
 		} else {
@@ -275,7 +275,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                             const hexColor = ImageRegistry.swtRGBToHex(selectedColor);
                             const labels = Java.from(wizardUI.catColorTable.getSelection()).map((item) => item.getText())
                             log.debug(`changing color for ${labels} to ${hexColor}`)
-                            model.setColorForLabels(labels, hexColor);
+                            cModel.setColorForLabels(labels, hexColor);
                         } else {
                             log.debug("color selection cancelled");
                         }
@@ -321,27 +321,27 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                 .button(SWT.PUSH)
                 .text("Save")
                 .tooltip("Save as default color scheme")
-                .onSelect((_) => {try {model.colormap.saveColorScheme()} catch (err) {log.error(err.toString())}})
+                .onSelect((_) => {try {cModel.colormap.saveColorScheme()} catch (err) {log.error(err.toString())}})
                 .create(group);
 
             WidgetFactory
                 .button(SWT.PUSH)
                 .text("Reload")
                 .tooltip("Load default color scheme")
-                .onSelect((_) => {try {model.colormap.loadColorScheme()} catch (err) {log.error(err.toString())}})
+                .onSelect((_) => {try {cModel.colormap.loadColorScheme()} catch (err) {log.error(err.toString())}})
                 .create(group);
 
             const resetDefaultCB = WidgetFactory
                 .button(SWT.CHECK)
                 .tooltip("Reset non-matching components to default colors")
                 .text("Reset other to default color")
-                .onSelect((e) => {model.colormap.resetDefault = resetDefaultCB.getSelection();})
+                .onSelect((e) => {cModel.colormap.resetDefault = resetDefaultCB.getSelection();})
                 .create(container)
-            resetDefaultCB.setSelection(model.colormap.resetDefault);
+            resetDefaultCB.setSelection(cModel.colormap.resetDefault);
 
             pageCategoryColor.setDescription("Please define the color for each label");
             pageCategoryColor.setControl(container);
-            pageCategoryColor.setPageComplete(model.colormap.isApplicable());
+            pageCategoryColor.setPageComplete(cModel.colormap.isApplicable());
             log.trace("... created");
         } catch (err) {
             log.error(err.toString())
@@ -368,24 +368,24 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                     item.setImage(imageRegistry.getImage(item.getData().color));
                 }
             }
-            pageCategoryColor.setPageComplete(model.colormap.isApplicable());
+            pageCategoryColor.setPageComplete(cModel.colormap.isApplicable());
             pageCategoryColor.getWizard().getContainer().updateButtons();
         }
         
         try {
             if (visible) {
-                model.registerModelChangeObserver(updateColorImages);
+                cModel.registerModelChangeObserver(updateColorImages);
                 // FIXME move to previous page when deciding the scaleType?
                 wizardUI.catColorTable.removeAll();
-                for (const cl of model.colormap.selection) {
+                for (const cl of cModel.colormap.selection) {
                     let item = new TableItem(wizardUI.catColorTable, SWT.NONE);
                     item.setText(cl.text);
                     item.setData(cl);
                 };
-                updateColorImages(model.colormap)
-                pageCategoryColor.setTitle(`Labels colors for '${model.property}'`);
+                updateColorImages(cModel.colormap)
+                pageCategoryColor.setTitle(`Labels colors for '${cModel.property}'`);
             } else {
-                model.removeModelChangeObserver(updateColorImages);
+                cModel.removeModelChangeObserver(updateColorImages);
             }
         } catch (err) {
             log.info(err.toString())
@@ -415,7 +415,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                         const hexColor = ImageRegistry.swtRGBToHex(selectedColor);
                         log.info(`Setting color ${hexColor} for ${ event.source == wizardUI.endBtn ? 'end' : 'start'}Button`)
                         // FIXME create the scale instead on Visible in the context of the UI? or Model ?
-                        model.scale.setColor(hexColor, event.source === wizardUI.endBtn)
+                        cModel.scale.setColor(hexColor, event.source === wizardUI.endBtn)
                     } else {
                         log.debug("color selection cancelled");
                     }
@@ -462,7 +462,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 .text("Save")
                 .tooltip("Save as default color scheme")
                 .layoutData(GridDataFactory.swtDefaults().create())
-                .onSelect((_) => {model.colormap.saveColorScheme()})
+                .onSelect((_) => {cModel.colormap.saveColorScheme()})
                 .create(group);
 
             WidgetFactory
@@ -470,7 +470,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 .text("Reload")
                 .tooltip("Load default color scheme")
                 .layoutData(GridDataFactory.swtDefaults().create())
-                .onSelect((_) => {model.colormap.loadColorScheme()})
+                .onSelect((_) => {cModel.colormap.loadColorScheme()})
                 .create(group);
 
             // Gradient management
@@ -516,13 +516,13 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 .button(SWT.CHECK)
                 .tooltip("Reset non-matching components to default colors")
                 .text("Reset other to default color")
-                .onSelect((_) => {model.colormap.resetDefault = resetDefaultCB.getSelection();})
+                .onSelect((_) => {cModel.colormap.resetDefault = resetDefaultCB.getSelection();})
                 .layoutData(GridDataFactory.fillDefaults().span(3, 1).create())
                 .create(container)
-            resetDefaultCB.setSelection(model.colormap.resetDefault);
+            resetDefaultCB.setSelection(cModel.colormap.resetDefault);
 
             pageContinuousColor.setControl(container);
-            pageContinuousColor.setPageComplete(model.colormap.isApplicable());
+            pageContinuousColor.setPageComplete(cModel.colormap.isApplicable());
             log.trace("... created");
         } catch (err) {
             log.error(err.toString())
@@ -542,13 +542,13 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
         function updateColorsPreview(colormap) {
             // No need to use colormap as all except one at most shall be updated
             log.trace(`buttons colors update...`)
-            wizardUI.startBtn.setImage(imageRegistry.getImage(model.scale.start.color));
-            wizardUI.endBtn.setImage(imageRegistry.getImage(model.scale.end.color));
+            wizardUI.startBtn.setImage(imageRegistry.getImage(cModel.scale.start.color));
+            wizardUI.endBtn.setImage(imageRegistry.getImage(cModel.scale.end.color));
             log.trace(`gradient update...`)
             wizardUI.gradientLabel.setImage(
                 imageRegistry.getGradientImage(
-                    model.scale.start.color,
-                    model.scale.end.color,
+                    cModel.scale.start.color,
+                    cModel.scale.end.color,
                     wizardUI.gradientLabel.getBounds()
                     )
                 )
@@ -556,35 +556,35 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             for (const i of wizardUI.gradientTable.getItems()) {
                 i.setImage(imageRegistry.getImage(i.getData().color));
             }
-            pageContinuousColor.setPageComplete(model.colormap.isApplicable() && model.scale.isDefined());
+            pageContinuousColor.setPageComplete(cModel.colormap.isApplicable() && cModel.scale.isDefined());
             pageContinuousColor.getWizard().getContainer().updateButtons();
         }
 
         try {
             if (visible) {
-                model.registerModelChangeObserver(updateColorsPreview);
+                cModel.registerModelChangeObserver(updateColorsPreview);
 
                 // creating the scale for current selection
-                model.scale = new ContinuousScale(model);
+                cModel.scale = new ContinuousScale(cModel);
 
                 // creating the preview labels
                 wizardUI.gradientTable.removeAll();
-                for (const l of model.scale.selection) {
+                for (const l of cModel.scale.selection) {
                     const item = new TableItem(wizardUI.gradientTable, SWT.NONE);
                     item.setText(l.text);
                     item.setImage(imageRegistry.getImage(l.color));
                     item.setData(l); // associate to model
                 }
                 // force colormap scale recalculation 
-                model.scale.applyColors();
+                cModel.scale.applyColors();
 
-                pageContinuousColor.setTitle(`Continuous color scale for '${model.property}'`);
-                pageContinuousColor.setDescription(`Select start ('${model.scale.start.text}') and end ('${model.scale.end.text}') colors to define gradient`);
+                pageContinuousColor.setTitle(`Continuous color scale for '${cModel.property}'`);
+                pageContinuousColor.setDescription(`Select start ('${cModel.scale.start.text}') and end ('${cModel.scale.end.text}') colors to define gradient`);
 
                 // Using this property as meaning "has been shown at least once"
                 // pageContinuousColor.setPageComplete(true);
             } else {
-                model.removeModelChangeObserver(updateColorsPreview)
+                cModel.removeModelChangeObserver(updateColorsPreview)
             }
         } catch(err) {
             log.info(err.toString())
@@ -598,16 +598,16 @@ const WIZARD_SUBCLASS_EXTENSION = {
 
     performFinish: function() 
     {
-        log.trace(`Wizard type ${model.colormap.scaleType} : finished`);
+        log.trace(`Wizard type ${cModel.colormap.scaleType} : finished`);
         // the whole enchilada is done outside, so this SWT method doesn't have to know about jArchi .ajs script
         return true;
     },
 
     canFinish: function() 
     {
-        const result = model.hasProperty // has property selected
-            && model.colormap.isApplicable()
-            && (model.colormap.scaleType == ColorMap.CATEGORICAL || (model.scale != undefined && model.scale.isDefined() ));// and the associated colorMap is applicable
+        const result = cModel.hasProperty // has property selected
+            && cModel.colormap.isApplicable()
+            && (cModel.colormap.scaleType == ColorMap.CATEGORICAL || (cModel.scale != undefined && cModel.scale.isDefined() ));// and the associated colorMap is applicable
             // && pageLabelsSelection.isPageComplete() && colorModel.colormap.someIncluded() // selection page viewed and selection not empty
             // && ((pageCategoryColor.isPageComplete() && colorModel.scaleType == ColorModel.CATEGORICAL)  // cat color page viewed 
             //    || (pageContinuousColor.isPageComplete() && colorModel.scaleType == ColorModel.CONTINUOUS)); // or cont color page viewed
