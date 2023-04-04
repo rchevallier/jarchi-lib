@@ -4,11 +4,11 @@
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see {@link ./doc/Colormap.md}
+ * @see {@link ../doc/Colormap.md}
  */
 
 load(__DIR__ + "lib/misc.js");
-log.level = LogLevel.TRACE;
+log.level = LogLevel.INFO;
 if (log.level <= LogLevel.DEBUG) {
     console.clear();
     console.show();
@@ -64,7 +64,9 @@ function applyColormap(view, scheme)
                 vo.fillColor = null
             }
         }
-    )
+    );
+    // then we save the ref as the last applied colormap for the view, so it can be reapplied without wizard
+    view.prop(".colormap.property", scheme.name);
 }
 
 

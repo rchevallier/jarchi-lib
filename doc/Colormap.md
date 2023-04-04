@@ -56,7 +56,7 @@ In this scheme, you define the colors for the lowest and hight numerical values 
 
 ![Continuous](./img/Continuous%20scheme%20colors.png)
 
-#### Saving or reloading default color scheme
+### Saving or reloading default color scheme
 
 In step 3), for both color schemes, you can save the current color settings as the default using the `Save` button. `Reload` will reapply the saved color scheme to the current label selection
 
@@ -66,7 +66,7 @@ In step 3), for both color schemes, you can save the current color settings as t
 
 If execution is asked (button `Finish` pressed), defined colors wil be applied to all elements in the view. 
 
-A legend will be created (positioned by default in the top left corner of the view). If a previous legend was created, it will be replaced.
+A legend will be created (positioned by default in the top left corner of the view). If a previous legend was created, it will be replaced at the same position.
 
 #### Example for categorical scale
 ![Categorical result](./img/Category%20Scheme%20Result.png)
