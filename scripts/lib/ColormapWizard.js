@@ -60,15 +60,21 @@ const pagePropertySelection = new ColorMapWizardPage("pagePropertySelection", {
                     cModel.property = list.getSelection()[0];
                     log.info(`Property ${cModel.property} selected`);
                     pagePropertySelection.setPageComplete(cModel.hasProperty); // should never be false
-                    // refresh CanFinish states
-                    // pagePropertySelection.getWizard().getContainer().updateButtons();
+                } catch (err) {
+                    log.error(err.toString())
+                }
+            }));
+            list.addMouseListener(MouseListener.mouseDoubleClickAdapter((e) => {
+                try {
+                    // going next page
+                    pagePropertySelection.getWizard().getContainer().showPage(pageLabelsSelection);
                 } catch (err) {
                     log.error(err.toString())
                 }
             }));
             list.setItems(Java.to(cModel.properties, StringArray));
             list.setLayoutData(new GridData(GridData.FILL_BOTH));
-            list.setSelection(0);
+            list.setSelection(list.indexOf(cModel.property));
     
             pagePropertySelection.setTitle('Select a property');
             pagePropertySelection.setDescription('Among the properties found in current view to be used to colorize the elements');
