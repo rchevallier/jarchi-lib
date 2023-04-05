@@ -120,41 +120,46 @@ function createLegend(view, scheme) {
     }
 }
 
-log.info("> Colormap script starts")
 
-/** @type ArchimateView */
-const theView = $(selection).parents().add(selection).filter("archimate-diagram-model").first();
+/**
+ * call the Wizard if no scheme to apply, and apply resulting colormap
+ * @param {ColorScheme} [scheme] if not defined, will launch the Wizard
+ */
+function colormap(scheme = undefined) {
+    log.info("> Colormap starts")
+    const theView = getCurrentView();
 
-if (!theView) {
-    MessageDialog.openError(shell, "No view selected", "Please select a view in the diagram area or in the model tree");
-    log.error("No view selected. Stopping");
-    exit();
-}
-
-const propertiesInView = gatherViewPropertiesInfo(theView);
-
-if (Object.keys(propertiesInView).length == 0) {
-    MessageDialog.openError(shell, "No properties", "No property found among the views elements");
-    log.error("No property found in these views elements. Stopping");
-    exit();    
-}
-
-{
-    const dir = __SCRIPTS_DIR__ + 'lib/Colormap.scheme';
-    if (!mkdirs(dir)) {
-        MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
-        log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
+    {
+        const dir = __DIR__ + 'lib/Colormap.scheme';
+        if (!mkdirs(dir)) {
+            MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
+            log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
+        }
     }
+
+    if (scheme == undefined) {
+        
+        const propertiesInView = gatherViewPropertiesInfo(theView);
+        if (Object.keys(propertiesInView).length == 0) {
+            MessageDialog.openError(shell, "No properties", "No property found among the views elements");
+            log.error("No property found in these views elements. Stopping");
+            exit();    
+        }
+        
+        // FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
+        cModel = new ColorModel(propertiesInView);
+        scheme = wizardExecute();
+    }
+    if (scheme) {
+        applyColormap(theView, scheme);
+        createLegend(theView, scheme);
+    } else {
+        log.warn("execution cancelled");
+    }
+    log.info("> Colormap end.");
 }
 
-// FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
-cModel = new ColorModel(propertiesInView);
-const scheme = wizardExecute();
-if (scheme) {
-    applyColormap(theView, scheme);
-    createLegend(theView, scheme);
-} else {
-    log.warn("execution cancelled");
+if (typeof __CALLER_SCRIPT__ == 'undefined') {
+    // only then if this script not loaded as library
+    colormap();
 }
-
-log.info("> Colormap script end.");

@@ -280,7 +280,7 @@ class ColorMap extends Map {
         log.debug(`trying to load scheme for ${this.name}`);
         // FIXME handle case of ContinuousScale (scaleType)
         try {
-            const content = read(__SCRIPTS_DIR__ + 'lib/Colormap.scheme/' + this.name.toLowerCase() + '.json');
+            const content = read(__DIR__ + 'Colormap.scheme/' + this.name.toLowerCase() + '.json');
             let scheme = JSON.parse(content);
             log.info(`Color scheme for ${this.name} loaded`);
             log.debug(content);
@@ -306,7 +306,7 @@ class ColorMap extends Map {
     saveColorScheme() {
         const json = JSON.stringify(this.getColorScheme(), undefined, 2);
         log.info(`Saving scheme ${this.name}: ${json}`);
-        jArchi.fs.writeFile(__SCRIPTS_DIR__ + 'lib/Colormap.scheme/' + this.name.toLowerCase() + ".json", json);
+        jArchi.fs.writeFile(__DIR__ + 'Colormap.scheme/' + this.name.toLowerCase() + ".json", json);
     }
 
 

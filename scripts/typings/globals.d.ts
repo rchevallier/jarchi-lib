@@ -317,7 +317,7 @@ interface Java {
 }
 
 
-function read(io: string): string;
+// function read(io: string): string;
 
 declare var Java: Java;
 // Predefined packages
