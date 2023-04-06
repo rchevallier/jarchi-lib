@@ -29,20 +29,7 @@ const FillLayout = Java.type('org.eclipse.swt.layout.FillLayout');
 const StringArray = Java.type('java.lang.String[]');
 const MouseListener = Java.type('org.eclipse.swt.events.MouseListener');
 const SelectionListener = Java.type('org.eclipse.swt.events.SelectionListener');
-
-
-/**
- * Stringify for debug (Helper)
- * 
- * @param {JavaObject[]} items JS array of TableItem
- * @returns {String} 
- */
-function tableItemStr(items) 
-{
-    return `{${items.map(i => i.getText()).join(",")}}`
-}
-
-const CustomColorDialog = Java.type("com.archimatetool.editor.ui.components.CustomColorDialog");
+const CustomColorDialog = Java.type('com.archimatetool.editor.ui.components.CustomColorDialog');
 const ColorMapWizardPage = Java.extend(Java.type('org.eclipse.jface.wizard.WizardPage'));
 
 const pagePropertySelection = new ColorMapWizardPage("pagePropertySelection", {
@@ -96,6 +83,17 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
     {
         try {
             log.trace(pageLabelsSelection.getName()+'...');
+
+            function gotoNextPageOnDblClick() {
+                return MouseListener.mouseDoubleClickAdapter( e => {
+                    try {
+                        pageLabelsSelection.getWizard().getContainer().showPage(pageLabelsSelection.getNextPage());
+                    } catch (err) {
+                        log.error(err.toString());
+                    }
+                })
+            };
+
             const container = new Composite(parent, SWT.NONE);
             GridLayoutFactory.swtDefaults().numColumns(2).margins(20, 10).spacing(20, 10).applyTo(container); // spacing(10, 5).
             WidgetFactory
@@ -108,12 +106,9 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
             wizardUI.labelsTable.setLayoutData(new GridData(GridData.FILL_BOTH));
             wizardUI.allLabelsCheckbox = new TableItem(wizardUI.labelsTable, SWT.NONE);
             wizardUI.allLabelsCheckbox.setText('(all labels)');
-            wizardUI.labelsTable.addListener (SWT.Selection, (e) => {
+            wizardUI.labelsTable.addSelectionListener(SelectionListener.widgetSelectedAdapter( (e) => {
                 try {
-                    const evtKind = e.detail == SWT.CHECK ? 'Check' : 'Selection';
-                    log.trace("*** CLICK! ", e.item + " " + evtKind + " " + e.item.getChecked());
                     if (e.detail == SWT.CHECK) {
-                        log.trace("... on ", e.item.getText(), wizardUI.allLabelsCheckbox.getText());
                         if (e.item == wizardUI.allLabelsCheckbox) {
                             const state = wizardUI.allLabelsCheckbox.getChecked();
                             log.debug("All labels handling, setting to ", state);
@@ -127,7 +122,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 } catch (err) {
                     log.error(err.toString());
                 }
-            });
+            }));
 
             WidgetFactory
                 .label(SWT.NONE)
@@ -145,6 +140,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .create(group);
             wizardUI.btnCategorical.setData(ColorMap.CATEGORICAL);
             wizardUI.btnCategorical.setSelection(cModel.colormap.scaleType == ColorMap.CATEGORICAL);
+            wizardUI.btnCategorical.addMouseListener(gotoNextPageOnDblClick())            
 
             wizardUI.btnContinuous = WidgetFactory
                 .button(SWT.RADIO)
@@ -154,6 +150,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .create(group);
             wizardUI.btnContinuous.setData(ColorMap.CONTINUOUS);
             wizardUI.btnContinuous.setSelection(cModel.colormap.scaleType == ColorMap.CONTINUOUS)
+            wizardUI.btnContinuous.addMouseListener(gotoNextPageOnDblClick());
 
             WidgetFactory
                 .label(SWT.NONE)
@@ -195,14 +192,12 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 const label = i.getText();
                 if (updated.includes(label)) {
                     log.trace(`Syncing '${label}' checkbox with ${JSON.stringify(colormap.get(label))} `);
-                    // i.setChecked(colormap.get(label).included);
                     i.setChecked(i.getData().included);
                 }
             }
 
             log.trace(`Enabling btnContinuous = ${colormap.allIncludedNumeric()}`);
             wizardUI.btnContinuous.setEnabled(colormap.allIncludedNumeric());
-            // pageLabelsSelection.setPageComplete(colormap.someIncluded());
             log.trace("Updating wizard buttons");
             pageLabelsSelection.getWizard().getContainer().updateButtons();
         }
@@ -222,8 +217,6 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 }
                 // set their initial state from model
                 updateLabelCheckMarks(cModel.colormap); 
-                // store subset of tableItems without the 1st item "(all labels)"
-                // wizardUI.labelItems = Java.from(table.getItems()).slice(1);
             } else {
                 cModel.removeModelChangeObserver(updateLabelCheckMarks);
             }
@@ -234,15 +227,6 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
         }
     },
 
-    /**
-     * Check the state of the "Next >" button
-     * @returns {boolean} 
-     */
-    // canFlipToNextPage: function() 
-    // {
-    //     // only if at least a value is selected
-    //     return colorModel.colormap.someIncluded(); 
-    // },
 
     getNextPage: function ()
 	{    	
