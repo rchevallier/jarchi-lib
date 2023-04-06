@@ -19,8 +19,8 @@
         "lib/ColormapWizard.js",
         "lib/ColormapModel.js",
         // "to SnakeCase.ajs",
-        "Colormap.ajs",
-        "Colormap - reapply.ajs",
+        "Colormap wizard.ajs",
+        "Colormap reapply.ajs",
         "lib/ImageRegistry.js"
     ],
     "exclude": [

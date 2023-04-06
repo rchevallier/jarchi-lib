@@ -89,7 +89,7 @@ if (typeof __MISC__ == 'undefined') {
 }
 
   
-  log.info(`loading ${__MISC__}...`)
+  log.trace(`loading ${__MISC__}...`)
 
   var JFile = Java.type('java.io.File');
   var JUrl = Java.type('java.net.URL');
@@ -219,7 +219,7 @@ if (typeof __MISC__ == 'undefined') {
   // MessageDialog.openWarning(shell, "Warning", "I am warning you!");
   // new MessageDialog(shell, "My Title", null, "My message", MessageDialog.ERROR, new String[] { "First", "Second", "Third" }, 0);
 
-  log.info(`${__MISC__} loaded.`)
+  log.trace(`${__MISC__} loaded.`)
 } else {
-  log.info(`${__MISC__} already loaded.`)  
+  log.trace(`${__MISC__} already loaded.`)  
 }

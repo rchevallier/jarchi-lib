@@ -1,0 +1,44 @@
+/**
+ * Reapply the colormap previously applied on the current view
+ * 
+ * @license Apache-2.0 cf LICENSE-2.0.txt
+ * @author rchevallier
+ * @copyright 2023 rchevallier
+ * @see colormap
+ * @see {@link ../doc/Colormap.md}
+ */
+
+load(__DIR__ + "lib/misc.js");
+log.level = LogLevel.INFO;
+if (log.level <= LogLevel.DEBUG) {
+    console.clear();
+    console.show();
+}
+
+// this marker global variable is defined so Colormap.ajs only used as a library, and not as a main script
+const __CALLER_SCRIPT__ = "Colormap reapply.ajs"
+load(__DIR__ + "Colormap wizard.ajs");
+
+const cView = getCurrentView();
+const property = cView.prop(".colormap.property");
+log.debug(`${cView.name} property ".colormap.property" = ${property}`);
+if (property) {
+    let scheme = readAsJson(__DIR__ + 'lib/Colormap.scheme/' + property.toLowerCase() + '.json');
+    log.debug(JSON.stringify(Object.keys(scheme)));
+    if (! ( (JSON.stringify(Object.keys(scheme)) == '["name","colormap","type","resetDefault"]')
+            && (typeof scheme.colormap == 'object') 
+            && (Object.keys(scheme.colormap).length > 0) )
+        )
+        scheme = undefined;
+    if (scheme) {
+        colormap(scheme)
+    } else {
+        log.warn(`invalid '${property}' colormap for current view`);
+        MessageDialog.openWarning(shell, "Invalid colormap", `invalid '${property}' colormap for current view.\n\nExecuting the wizard`);
+        colormap()
+    }
+} else {
+    log.warn("No previously applied colormap for current view")
+    MessageDialog.openWarning(shell, "No colormap", "No previously applied colormap for current view.\n\nExecuting the wizard");
+    colormap();
+}

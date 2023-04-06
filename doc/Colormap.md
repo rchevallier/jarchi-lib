@@ -3,10 +3,12 @@
 Inspired from **Steven Mileham** [script](https://gist.github.com/smileham/4bbca832d8fe629b72beb4e2b9a4b7ea) and [blog](https://smileham.co.uk/2022/06/15/archi-jarchi-and-rag-status-maps/), a completely redesigned Heatmap/Colormap function as a SWT Wizard to set a visual element background color based on it's property value.
 
 ## Installation
+
 Following files and directory structure **MUST** be copied in the jArchi scripting directory and shall respect the tree structure.
 
 ```
-Colormap.ajs - Script entry point, to be launched
+Colormap wizard.ajs - to launch the Wizard on the selected view
+Colormap reapply.ajs - to reapply the latest colormap saved definition of the selected view
 lib/
     misc.js - scripts common utilities
     ColorModel.js 
@@ -16,9 +18,13 @@ lib/
 ```
 
 ## Execution
-The Wizard is organized in 3 steps. As with any wizard, it is possible to go back and forth between pages with `< Back` and `Next >` buttons. `Cancel` will stop the Wizard. `Finish` will execute the colorization, if all necessary choices are made.
+
+The **Wizard** is organized in 3 steps. As with any wizard, it is possible to go back and forth between pages with `< Back` and `Next >` buttons. `Cancel` will stop the Wizard. `Finish` will execute the colorization, if all necessary choices are made.
+
+The **Reapply** will apply directly the latest colormap saved default definition to the selected view. If no colormap was ever applied, or if the colormap definition is invalid (for instance, never saved), it will reroute to the wizard.
 
 ### 1) Property selection step
+
 All properties found in any element displayed in the selected view are listed for selection.
 
 ![Property selection](./img/Property%20list.png)
@@ -26,6 +32,7 @@ All properties found in any element displayed in the selected view are listed fo
 Selecting `Next >` will lead to ...
 
 ### 2) Labels selection step
+
 the page shows all possible labels associated with the selected property, and used in the selected view. It is possible to select only subset of the values using the checkbox. The `(all labels)` checkbox is a short cut to check or uncheck all labels in the list.
 
 ![Labels selection](./img/Property%20labels%20selection.png)
@@ -58,7 +65,9 @@ In this scheme, you define the colors for the lowest and hight numerical values 
 
 ### Saving or reloading default color scheme
 
-In step 3), for both color schemes, you can save the current color settings as the default using the `Save` button. `Reload` will reapply the saved color scheme to the current label selection
+In step 3), for both color schemes, you can save the current color definition as the default and the one to reapply using the `Save` button. `Reload` will reapply the saved color scheme to the current label selection.
+
+**NB**: the **Reapply** script is based on the name of the property. It will reapply the colormap saved definition.
 
 ![default scheme](./img/Default%20Color.png)
 
@@ -69,9 +78,11 @@ If execution is asked (button `Finish` pressed), defined colors wil be applied t
 A legend will be created (positioned by default in the top left corner of the view). If a previous legend was created, it will be replaced at the same position.
 
 #### Example for categorical scale
+
 ![Categorical result](./img/Category%20Scheme%20Result.png)
 
 #### Example for continuous scale
+
 ![Continuous result](./img/Continuous%20color%20output.png)
 
 If the result doesn't suit, you can can cancel the modification by just selecting `Edit | Undo (CTRL-Z)` menu item (Reselect the view first if necessary).

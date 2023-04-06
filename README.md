@@ -26,7 +26,7 @@ The `.ajs` except when noted, resides in the `scripts` directory
 
 For development, allow code completion in VSCode for Archimate jArchi api. To be used in conjunction with [`jsconfig.json`](https://code.visualstudio.com/docs/languages/jsconfig).
 
-## 1. [Colormap.ajs](doc/Colormap.md)
+## 1. [Colormap.ajs, Colormap - reapply.ajs](doc/Colormap.md)
 
 A property heatmap Wizard, with either a discrete categorical color scale or a continuous (gradient) numeric color scale. 
 

@@ -7,11 +7,14 @@
  * @see {@link ../doc/Colormap.md}
  */
 
-load(__DIR__ + "lib/misc.js");
-log.level = LogLevel.DEBUG;
-if (log.level <= LogLevel.DEBUG) {
-    console.clear();
-    console.show();
+if (typeof __CALLER_SCRIPT__ == 'undefined') {
+    // it is the main script
+    load(__DIR__ + "lib/misc.js");
+    log.level = LogLevel.INFO;
+    if (log.level <= LogLevel.DEBUG) {
+        console.clear();
+        console.show();
+    }
 }
 
 load(__DIR__ + "lib/ColormapModel.js")
@@ -47,8 +50,6 @@ function gatherViewPropertiesInfo(view) {
 
 
 /**
- * @typedef {{colormap: {[x: string]: string}, name: string, type: string, resetDefault: boolean}} ColorScheme
- * 
  * Apply to the view the heatmap as configured by the wizard
  * @param {ArchimateView} view 
  * @param {ColorScheme} scheme
@@ -108,8 +109,6 @@ function createLegend(view, scheme) {
     legendGroup.borderType = BORDER.RECTANGLE;
 
     let y = COLOR_HEIGHT;
-    // FIXME sort order is different, only reason to access scale
-    // will be handled by return Object keys order
     for (let label in scheme.colormap) {
         log.trace(`legend color is ${scheme.colormap[label]} for label '${label}'`);
         let colLegend = legendGroup.createObject("diagram-model-note", X_MARGIN, y, COLOR_WIDTH, COLOR_HEIGHT);
@@ -154,6 +153,7 @@ function colormap(scheme = undefined) {
         scheme = wizardExecute();
     }
     if (scheme) {
+        // FIXME if continuous recalculate colors on collected labels for properties
         applyColormap(theView, scheme);
         createLegend(theView, scheme);
     } else {
@@ -163,6 +163,8 @@ function colormap(scheme = undefined) {
 }
 
 if (typeof __CALLER_SCRIPT__ == 'undefined') {
-    // only then if this script not loaded as library
+    // this is the main script
     colormap();
+} else {
+    log.trace(`Colormap.ajs loaded as a library for '${__CALLER_SCRIPT__}'`)
 }
