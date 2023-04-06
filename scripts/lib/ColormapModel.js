@@ -311,7 +311,7 @@ class ColorMap extends Map {
 
 
     /**
-     * 
+     * @typedef {{name: string, type: string, resetDefault: boolean, colormap: {[x: string]: string}}} ColorScheme
      * @returns {ColorScheme} the color scheme as simple JSON objects
      */
     getColorScheme() {
@@ -431,8 +431,9 @@ class ContinuousScale {
 class ColorModel extends Map {
     /**
      * @param {{[x:string]: string[]}} collected 
+     * @param {string} [property] default selected property
      */
-    constructor (collected) {
+    constructor (collected, property) {
         super(Object.entries(collected).map(([name,labels]) => [name, new ColorMap(name, labels)]));
         this.forEach(colormap => colormap.model = this);
         // Set default property as 1st in list
@@ -447,7 +448,14 @@ class ColorModel extends Map {
         this.scale = undefined;
         // load default color schemes if exist
         this.forEach((colormap, _) => colormap.loadColorScheme());
-        log.info("selected: " + this.property, " => ", [...this.colormap.entries()]);
+        if (property != undefined) {
+            if (this.has(property)) {
+                this.property = property
+                log.info(`Property ${this.property} selected`);
+            } else {
+                log.warn(`Requested property '${property}' does not exist among the collected`)
+            }
+        }
         log.trace(`HasProperty: ${this.hasProperty}`)
     }
 

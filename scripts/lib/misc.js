@@ -9,9 +9,10 @@
  */
 
 // to avoid redefinition if multiple loads
-// NB: because it's in a block and we need , everything is defined as var (and not const/function)
+// NB: because it's in a block and we need to see outside the block, everything is defined as var (and not const/function)
 if (typeof __MISC__ == 'undefined') {
   var __MISC__ = "misc.js";
+
   var LogLevel = {
     TRACE: 0,
     DEBUG: 1,
@@ -88,7 +89,7 @@ if (typeof __MISC__ == 'undefined') {
 }
 
   
-  log.debug(`loading ${__MISC__}...`)
+  log.info(`loading ${__MISC__}...`)
 
   var JFile = Java.type('java.io.File');
   var JUrl = Java.type('java.net.URL');
@@ -128,14 +129,15 @@ if (typeof __MISC__ == 'undefined') {
 
   /**
    * load a JSON file
-   * @param {string} path 
-   * @returns {any}
+   * 
+   * @param {string} url either an url or a file path
+   * @returns {any} a JSON structure
    */
-  var readAsJson = function(path) {
-    const content = read(path);
+  var readAsJson = function(url) {
+    const content = read(url);
     log.debug(content);
-    const scheme = JSON.parse(content);
-    return scheme;
+    const json = JSON.parse(content);
+    return json;
   }
 
 
@@ -217,7 +219,7 @@ if (typeof __MISC__ == 'undefined') {
   // MessageDialog.openWarning(shell, "Warning", "I am warning you!");
   // new MessageDialog(shell, "My Title", null, "My message", MessageDialog.ERROR, new String[] { "First", "Second", "Third" }, 0);
 
-  log.debug(`${__MISC__} loaded.`)
+  log.info(`${__MISC__} loaded.`)
 } else {
-  log.debug(`${__MISC__} already loaded.`)  
+  log.info(`${__MISC__} already loaded.`)  
 }

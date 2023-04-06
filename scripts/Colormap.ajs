@@ -8,7 +8,7 @@
  */
 
 load(__DIR__ + "lib/misc.js");
-log.level = LogLevel.INFO;
+log.level = LogLevel.DEBUG;
 if (log.level <= LogLevel.DEBUG) {
     console.clear();
     console.show();
@@ -145,9 +145,12 @@ function colormap(scheme = undefined) {
             log.error("No property found in these views elements. Stopping");
             exit();    
         }
+
+        // default property is last one used
+        const lastApplied = theView.prop(".colormap.property");
         
         // FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
-        cModel = new ColorModel(propertiesInView);
+        cModel = new ColorModel(propertiesInView, lastApplied);
         scheme = wizardExecute();
     }
     if (scheme) {
