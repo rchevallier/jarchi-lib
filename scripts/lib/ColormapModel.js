@@ -128,45 +128,48 @@ class ColorMap extends Map {
      * @param {string[]} [labels] initial set of labels
      * @param {HexColor} [color] default color, can be undefined
      * @param {boolean} [resetDefault]  default is True
-     * @param {string} [scaleType] type of ColorMap, default CATEGORICAL
+     * @param {typeof CategoricalScale} [scaleClass] type of ColorMap, default Categorical
      */
-    constructor (pname, labels, color, resetDefault = true, scaleType = ColorMap.CATEGORICAL) {
-        super()
+    constructor (pname, labels, color, resetDefault = true, scaleClass = CategoricalScale) {
+        super();
         assert (pname != undefined);
-        this._pname = pname;
-        this._scaleType = scaleType;
-        this._resetDefault = resetDefault;
         this._model = undefined;
+        this._pname = pname;
+        this._resetDefault = resetDefault;
         if (labels != undefined)
-            for (const l of labels) {
-                this.set(l, new ColorLabel(l, color))
+        for (const l of labels) {
+            this.set(l, new ColorLabel(l, color))
         }
+        this._scale = new scaleClass(this); 
     }
 
     get name() {
         return this._pname;
     }
 
-    static get CATEGORICAL() {
-        return "Categorical";
-    }
 
-    static get CONTINUOUS() {
-        return "Continuous";
+    /**
+     * @param {typeof CategoricalScale | typeof ContinuousScale} clazz
+     */
+    set scaleClass(clazz) {
+        if (clazz != this._scale.constructor) {
+            log.debug(`Setting ScaleClass to ${clazz.name} for ${this.name}`)
+            this._scale = new clazz(this);
+        } else {
+            log.trace(`No ScaleClass change for ${this.name} (${clazz.name})`)
+        }
     }
 
     /**
-     * @returns {string}
+     * @returns {typeof CategoricalScale | typeof ContinuousScale}
      */
-    get scaleType() {
-        return this._scaleType;
+    get scaleClass(){
+        // @ts-ignore
+        return this._scale.constructor
     }
 
-    /**
-     * @param {string} t
-     */
-    set scaleType(t) {
-        this._scaleType = t;
+    get scale() {
+        return this._scale;
     }
 
     /**
@@ -183,17 +186,23 @@ class ColorMap extends Map {
         this._resetDefault = v;
     }
 
+    /**
+     * Returns the associated ColorModel, maybe undefined
+     */
     get model() {
         return this._model;
     }
 
-    /** @param {ColorModel} v */
+    /** 
+     * Associate the ColorMap to the ColorModel
+     * @param {ColorModel} v 
+     */
     set model(v) {
         this._model = v
     }
 
     /**
-     * Helper
+     * Helper function - fire change event on model
      * @param {string[]} labels 
      */
     _fireEvent(labels) {
@@ -219,13 +228,14 @@ class ColorMap extends Map {
 
     /**
      * Check if the colorMap is applicable:
-     *  - Some label are included
+     *  - At least one label are included
      *  - all of these labels have a color defined
      * @returns {boolean} true if the Colormap can be applied
      */
     isApplicable() {
         const selected = this.selection;
         return selected.length > 0 && selected.every(cl => cl.color != undefined);
+        // FIXME add scale validation ?
     }
 
     /**
@@ -245,7 +255,7 @@ class ColorMap extends Map {
     }
 
     /**
-     * @param {boolean} [selectedOnly] allow to filter with selected labels
+     * @param {boolean} [selectedOnly] allow to filter with only selected labels
      * @returns {string[]} labels text
      */
     labels(selectedOnly = false) {
@@ -255,45 +265,53 @@ class ColorMap extends Map {
     }
 
     /**
-     * @returns {ColorLabel[]} the ColorLabel selected
+     * @returns {ColorLabel[]} the ColorLabels selected
      */
     get selection() {
         return [...this.values()].filter( (v) => v.included )
     }
 
     /**
+     * Define the inclusion for colorization for labels, and fire change event
      * @param {string[]} labels current property labels
-     * @param {boolean} doit if false, elements with this property label is not expected to be colorized
+     * @param {boolean} selected if false, elements with this property label is not expected to be colorized
      */
-    setSelection(labels, doit)
+    setSelection(labels, selected)
     {
-        for (const l of labels) 
-            this.get(l).included = doit;
+        log.debug(`changing selection for ${labels} to ${selected}`)
+        for (const label of labels) 
+            this.get(label).included = selected;
         this._fireEvent(labels);
     }
-        
-
+    
+    /**
+     * Set a color for one or many labels, and fire change event
+     * @param {string[]} labels 
+     * @param {HexColor} color 
+     */
+    setColor(labels, color){
+        log.debug(`changing color for ${labels} to ${color}`)
+        for (const label of labels) {
+            this.get(label).color = color;
+        }
+        this._fireEvent(labels);
+}
     /**
      * Load if found the default colors
      */
     loadColorScheme() {
         log.debug(`trying to load scheme for ${this.name}`);
-        // FIXME handle case of ContinuousScale (scaleType)
         try {
-            const content = read(__DIR__ + 'Colormap.scheme/' + this.name.toLowerCase() + '.json');
-            let scheme = JSON.parse(content);
+            const scheme = readAsJson(__DIR__ + 'Colormap.scheme/' + this.name.toLowerCase() + '.json')
             log.info(`Color scheme for ${this.name} loaded`);
-            log.debug(content);
             if (scheme.resetDefault)
                 this.resetDefault = scheme.resetDefault;
-            if (scheme.colormap !== undefined) {
-                // new structure for color scheme
-                scheme = scheme.colormap;
-            }
             this.forEach((_, label) => {
-                if (scheme[label]) 
-                    {this.get(label).color = new HexColor(scheme[label]) }
-                });
+                if (scheme.colormap[label]) 
+                    {this.get(label).color = new HexColor(scheme.colormap[label]) }
+            });
+            if (scheme.type)
+                this.scaleClass = scheme.type == ContinuousScale.label ? ContinuousScale : CategoricalScale;
             this._fireEvent(this.labels());
         } catch (err) {
             log.warn("Cannot load scheme for " + this.name + "\n" + err.toString());
@@ -315,40 +333,103 @@ class ColorMap extends Map {
      * @returns {ColorScheme} the color scheme as simple JSON objects
      */
     getColorScheme() {
-        const selected = this.selection;
-        if (this.scaleType == ColorMap.CONTINUOUS) {
-            selected.sort((a, b) => a.textAsNumber - b.textAsNumber)
-        }
-        const colormap = selected.map(((cl) => [cl.text, cl.color.toString()]));
+        const colormap = this.selection.map(((cl) => [cl.text, cl.color.toString()]));
         const scheme = {
             name:  this.name,
-            colormap: Object.fromEntries(colormap),
-            type: this.scaleType,
-            resetDefault: this.resetDefault
+            type: this.scale.name,
+            resetDefault: this.resetDefault,
+            colormap: Object.fromEntries(colormap) // NB: order of labels are undetermined
+        }
+        // handle continuous scale extremities 
+        // FIXME: USeful?
+        if (this.scale instanceof ContinuousScale) {
+            scheme.Continuous = {
+                start: {
+                    value: this.scale.start.textAsNumber, 
+                    color: this.scale.start.color.toString()}, 
+                end: {
+                    value: this.scale.end.textAsNumber,
+                    color: this.scale.end.color.toString()}
+                }
         }
         return scheme;
     }
 }
 
+
+
 /**
- * For now the only scale available
+ * The default basic Scale, no color 
+ * calculation, only assignment
+ */
+class CategoricalScale {
+
+    static get label() {
+        return "Categorical"
+    }
+    
+    /**
+     * @param {ColorMap} colormap 
+     */
+    constructor (colormap) {
+        this._colormap = colormap
+    }
+
+    get name() {
+        return CategoricalScale.label
+    }
+
+    get colormap() {
+        return this._colormap;
+    }
+
+    calcColors() {
+        // default do nothing
+    }
+
+    isDefined() {
+        return true
+    }
+}
+
+/**
+ * For now the only intelligent scale available
  * Possible other scales to be implemented:
  *   - DivergingScale: 3 colors, middle white (at 0 per default?)
  *   - StepScale: continuous, but with discrete step ranges
  * 
  */
-class ContinuousScale {
+class ContinuousScale extends CategoricalScale {
+
+    static get label() {
+        return "Continuous";
+    }
+
+    get name() {
+        return ContinuousScale.label
+    }
+
 
     /**
      * function to calculate a colormap from a linear color scale
      * based on the model selected labels at creation time.
      * // FIXME changer to ColorMap or morph from a ColorMap ?
-     * @param {ColorModel} model 
+     * @param {ColorMap} colormap 
      */
-    constructor(model) {
-        this.model = model;
+    constructor(colormap) {
+        super(colormap);
         // sort numerically
-        this._selection = model.colormap.selection.sort((a, b) => a.textAsNumber - b.textAsNumber);
+        // FIXME JIT calculation in colormap
+        this._init();
+        this.calcColors();
+    }
+
+    /**
+     * Precalculate sort and extremities
+     * @private
+     */
+    _init() {
+        this._selection = this.colormap.selection.sort((a, b) => a.textAsNumber - b.textAsNumber);
         this._start = this._selection[0];
         this._end = this._selection[this._selection.length - 1];
     }
@@ -375,25 +456,18 @@ class ContinuousScale {
 
 
     /**
-     * Event listener, change one of the extremity color
+     * Event listener, change one of the extremity color for the gradient 
      * @param {HexColor} color 
      * @param {boolean} end 
      */
-    setColor(color, end) {
-        if (end) {
-            this.end.color = color;
-            log.trace(`end: new color ${JSON.stringify(this.end)}`);
-        } else {
-            this.start.color = color;
-            log.trace(`start: new color ${JSON.stringify(this.start)}`);
-        }
+    setGradientColor(color, end) {
+        const extremity = end ? "end" : "start";
+        this[extremity].color = color;
+        log.trace(`${extremity}: ${this[extremity].color.toString()}`);
         this.applyColors();
     }
 
-    /**
-     * Recalculate colors for the current Colormap selection, in the sorted numeric order
-     */
-    applyColors() {
+    calcColors() {
         // calculate colors for all labels   
         if  (this.isDefined()) {
             const [sr, sg, sb] = this.start.color.toRGB();
@@ -410,9 +484,17 @@ class ContinuousScale {
                 l.color = hexColor;
             }
         } else {
-            log.info("Undefined color at extremities. Gradient not calculated")
+            log.info("Undefined color at gradient extremity. Gradient not calculated")
         }
-        this.model.notifyModelChange(this.model.colormap.labels(true));
+    }
+
+    /**
+     * Recalculate colors for the current Colormap selection, in the sorted numeric order
+     */
+    applyColors() {
+        this._init();
+        this.calcColors()
+        this._colormap._fireEvent(this._colormap.labels(true));
     }
 
 }
@@ -431,23 +513,22 @@ class ContinuousScale {
 class ColorModel extends Map {
     /**
      * @param {{[x:string]: string[]}} collected 
-     * @param {string} [property] default selected property
+     * @param {string} [property] default selected property, may not match the collected
      */
     constructor (collected, property) {
         super(Object.entries(collected).map(([name,labels]) => [name, new ColorMap(name, labels)]));
         this.forEach(colormap => colormap.model = this);
         // Set default property as 1st in list
         assert(this.size >0, "No property found");
-        // default is 1st of list
+        // default property is 1st of list
         this._colormap = this.entries().next().value[1];
         log.debug(`properties collected: ${[...this.keys()]}`);
         this.forEach((colormap, _) => log.info(`property '${colormap.name}' labels: ${[...colormap.values()].map((cl) => cl.text)}`));
         /** @type {Set<ObserverCallback>} */
         this._observers = new Set();
-        /** @type {ContinuousScale} */
-        this.scale = undefined;
         // load default color schemes if exist
         this.forEach((colormap, _) => colormap.loadColorScheme());
+        // override default if possible
         if (property != undefined) {
             if (this.has(property)) {
                 this.property = property
@@ -456,7 +537,6 @@ class ColorModel extends Map {
                 log.warn(`Requested property '${property}' does not exist among the collected`)
             }
         }
-        log.trace(`HasProperty: ${this.hasProperty}`)
     }
 
     
@@ -521,12 +601,12 @@ class ColorModel extends Map {
     } 
 
     /**
-     * Change the current property
+     * Change the current property if possible
      * @param {string} name
      */
     set property(name) {
-        assert (this.has(name))
-        this._colormap = this.get(name);
+        if (this.has(name))
+            this._colormap = this.get(name);
     }
     
     /**
@@ -535,19 +615,6 @@ class ColorModel extends Map {
      */
     get colormap() {
         return this._colormap;
-    }
-
-
-    /**
-     * FIXME! Move to ColorMap ? idem ColorMap.setColor?
-     * @param {string[]} labels 
-     * @param {HexColor} color 
-     */
-    setColorForLabels(labels, color) {
-        for (const label of labels) {
-            this.colormap.get(label).color = color;
-        }
-        this.notifyModelChange(labels);
     }
 
 }

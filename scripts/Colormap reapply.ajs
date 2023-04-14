@@ -4,12 +4,12 @@
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see colormap
+ * @see colorWizard
  * @see {@link ../doc/Colormap.md}
  */
 
 load(__DIR__ + "lib/misc.js");
-log.level = LogLevel.INFO;
+log.level = LogLevel.TRACE;
 if (log.level <= LogLevel.DEBUG) {
     console.clear();
     console.show();
@@ -23,22 +23,30 @@ const cView = getCurrentView();
 const property = cView.prop(".colormap.property");
 log.debug(`${cView.name} property ".colormap.property" = ${property}`);
 if (property) {
-    let scheme = readAsJson(__DIR__ + 'lib/Colormap.scheme/' + property.toLowerCase() + '.json');
-    log.debug(JSON.stringify(Object.keys(scheme)));
-    if (! ( (JSON.stringify(Object.keys(scheme)) == '["name","colormap","type","resetDefault"]')
-            && (typeof scheme.colormap == 'object') 
-            && (Object.keys(scheme.colormap).length > 0) )
-        )
-        scheme = undefined;
-    if (scheme) {
-        colormap(scheme)
+    const props = gatherViewPropertiesInfo(cView, property);
+    // check props are OK ?
+    const cMap = new ColorMap(property, props[property]);
+    cMap.loadColorScheme();
+    // check scheme ok ? all included ? accept unknownColor = excluded ??
+    // recalculate Continuous ?
+    if (cMap.isApplicable()) {
+        const scheme = cMap.getColorScheme();
+        log.debug(`scheme = \n${JSON.stringify(scheme, null, 2)}`)
+        applyColorScheme(cView, scheme);
+        createLegend(cView, scheme);
     } else {
-        log.warn(`invalid '${property}' colormap for current view`);
-        MessageDialog.openWarning(shell, "Invalid colormap", `invalid '${property}' colormap for current view.\n\nExecuting the wizard`);
-        colormap()
+        log.warn(`'${property}' color scheme cannot be automatically applied on current view`);
+        MessageDialog.openWarning(shell, "Invalid color scheme", `'${property}' color scheme cannot be automatically applied on current view.\n\nExecuting the wizard`);
+        colorWizard();
     }
+    // if (! ( (JSON.stringify(Object.keys(scheme)) == '["name","colormap","type","resetDefault"]')
+    //         && (typeof scheme.colormap == 'object') 
+    //         && (Object.keys(scheme.colormap).length > 0) )
+    //     ){
+    //     log.warn(`${property} JSON scheme invalid`);
+    // }
 } else {
     log.warn("No previously applied colormap for current view")
     MessageDialog.openWarning(shell, "No colormap", "No previously applied colormap for current view.\n\nExecuting the wizard");
-    colormap();
+    colorWizard();
 }

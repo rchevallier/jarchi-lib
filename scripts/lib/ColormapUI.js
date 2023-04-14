@@ -111,11 +111,8 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                     if (e.detail == SWT.CHECK) {
                         if (e.item == wizardUI.allLabelsCheckbox) {
                             const state = wizardUI.allLabelsCheckbox.getChecked();
-                            log.debug("All labels handling, setting to ", state);
                             cModel.colormap.setSelection(cModel.colormap.labels(), state);
-                        } else  {
-                            log.trace("Single label handling");
-                            log.debug(`'${e.item.getText()}' ColorLabel = ${JSON.stringify(cModel.colormap.get(e.item.getText()))} `)
+                        } else {
                             cModel.colormap.setSelection([e.item.getText()], e.item.getChecked());
                         }
                     }
@@ -136,20 +133,18 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .button(SWT.RADIO)
                 .text("Categorical (text)")
                 .tooltip("Use a discrete color scheme")
-                .onSelect(e => cModel.colormap.scaleType = e.source.getData())
+                .onSelect(e => cModel.colormap.scaleClass = e.source.getData())
                 .create(group);
-            wizardUI.btnCategorical.setData(ColorMap.CATEGORICAL);
-            wizardUI.btnCategorical.setSelection(cModel.colormap.scaleType == ColorMap.CATEGORICAL);
+            wizardUI.btnCategorical.setData(CategoricalScale);
             wizardUI.btnCategorical.addMouseListener(gotoNextPageOnDblClick())            
 
             wizardUI.btnContinuous = WidgetFactory
                 .button(SWT.RADIO)
                 .text("Continuous (numeric)")
                 .tooltip("Use a continuous (gradient) color scheme (for numeric labels only)")
-                .onSelect(e => cModel.colormap.scaleType = e.source.getData())
+                .onSelect(e => cModel.colormap.scaleClass = e.source.getData())
                 .create(group);
-            wizardUI.btnContinuous.setData(ColorMap.CONTINUOUS);
-            wizardUI.btnContinuous.setSelection(cModel.colormap.scaleType == ColorMap.CONTINUOUS)
+            wizardUI.btnContinuous.setData(ContinuousScale);
             wizardUI.btnContinuous.addMouseListener(gotoNextPageOnDblClick());
 
             WidgetFactory
@@ -180,24 +175,33 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
          * @param {ColorMap} colormap 
          */
         function updateLabelCheckMarks(colormap) {
-            assert(colormap != undefined)
-            log.trace(`${updateLabelCheckMarks.name}: updating check mark states`);
-            const table = wizardUI.labelsTable;
-            const updated = [...colormap.keys()];
+            try {
+                assert(colormap != undefined)
+                log.trace(`${updateLabelCheckMarks.name}: updating check mark states`);
+                const table = wizardUI.labelsTable;
+                const updated = [...colormap.keys()];
 
-            log.trace(`Setting (all labels) state`);
-            table.getItem(0).setChecked(cModel.colormap.allIncluded());
+                log.trace(`Setting (all labels) state`);
+                table.getItem(0).setChecked(cModel.colormap.allIncluded());
 
-            for (const i of table.getItems()) {
-                const label = i.getText();
-                if (updated.includes(label)) {
-                    log.trace(`Syncing '${label}' checkbox with ${JSON.stringify(colormap.get(label))} `);
-                    i.setChecked(i.getData().included);
+                for (const i of table.getItems()) {
+                    const label = i.getText();
+                    if (updated.includes(label)) {
+                        log.trace(`Syncing '${label}' checkbox with ${JSON.stringify(colormap.get(label))} `);
+                        i.setChecked(i.getData().included);
+                    }
                 }
-            }
 
-            log.trace(`Enabling btnContinuous = ${colormap.allIncludedNumeric()}`);
-            wizardUI.btnContinuous.setEnabled(colormap.allIncludedNumeric());
+                const allNumeric = colormap.allIncludedNumeric();
+                log.trace(`Enabling btnContinuous = ${allNumeric}`);
+                wizardUI.btnContinuous.setEnabled(allNumeric);
+                if (!allNumeric) 
+                    colormap.scaleClass = CategoricalScale;
+                wizardUI.btnCategorical.setSelection(cModel.colormap.scaleClass == CategoricalScale);
+                wizardUI.btnContinuous.setSelection(cModel.colormap.scaleClass == ContinuousScale);
+            } catch (err) {
+                log.error(err.toString())
+            }
             log.trace("Updating wizard buttons");
             pageLabelsSelection.getWizard().getContainer().updateButtons();
         }
@@ -230,15 +234,12 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
 
     getNextPage: function ()
 	{    	
-        if (cModel.colormap.scaleType == ColorMap.CATEGORICAL) {
-            log.info("NextPage:", pageCategoryColor.getName());
-            return pageCategoryColor;
-		} else if (cModel.colormap.scaleType == ColorMap.CONTINUOUS) { 
+        if (cModel.colormap.scale instanceof ContinuousScale) { 
             log.info("NextPage:", pageContinuousColor.getName());
 			return pageContinuousColor;
-		} else {
-            log.info("Cannot determine next page!");
-		    return null;
+        } else {
+            log.info("NextPage:", pageCategoryColor.getName());
+            return pageCategoryColor;
         }
 	}
 
@@ -264,8 +265,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                         if (selectedColor) {
                             const hexColor = ImageRegistry.swtRGBToHex(selectedColor);
                             const labels = Java.from(wizardUI.catColorTable.getSelection()).map((item) => item.getText())
-                            log.debug(`changing color for ${labels} to ${hexColor}`)
-                            cModel.setColorForLabels(labels, hexColor);
+                            cModel.colormap.setColor(labels, hexColor);
                         } else {
                             log.debug("color selection cancelled");
                         }
@@ -365,7 +365,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
         try {
             if (visible) {
                 cModel.registerModelChangeObserver(updateColorImages);
-                // FIXME move to previous page when deciding the scaleType?
+                // FIXME move to previous page when deciding the scaleClass?
                 wizardUI.catColorTable.removeAll();
                 for (const cl of cModel.colormap.selection) {
                     let item = new TableItem(wizardUI.catColorTable, SWT.NONE);
@@ -396,7 +396,6 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             const container = new Composite(parent, SWT.NONE);
             GridLayoutFactory.swtDefaults().numColumns(4).margins(20, 10).spacing(2, 6).applyTo(container); 
 
-            // FIXME refactor to share this with categorical if possible
             function setColor(event) {
                 const colorDlg = new CustomColorDialog(container.getShell());
                 try {
@@ -405,7 +404,10 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                         const hexColor = ImageRegistry.swtRGBToHex(selectedColor);
                         log.info(`Setting color ${hexColor} for ${ event.source == wizardUI.endBtn ? 'end' : 'start'}Button`)
                         // FIXME create the scale instead on Visible in the context of the UI? or Model ?
-                        cModel.scale.setColor(hexColor, event.source === wizardUI.endBtn)
+                        if (cModel.colormap.scale instanceof ContinuousScale)
+                            cModel.colormap.scale.setGradientColor(hexColor, event.source === wizardUI.endBtn)
+                        else
+                            log.error(`Invalid scale type: ${cModel.colormap.scaleClass}`)
                     } else {
                         log.debug("color selection cancelled");
                     }
@@ -466,7 +468,6 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             // Gradient management
             wizardUI.startBtn = WidgetFactory
                 .button(SWT.PUSH)
-                // need undefined image for correct size FIXME use size hit ?
                 .image(imageRegistry.unknownImage)
                 .tooltip("Click to set start color")
                 .layoutData(GridDataFactory.swtDefaults().create())
@@ -532,21 +533,25 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
         function updateColorsPreview(colormap) {
             // No need to use colormap as all except one at most shall be updated
             log.trace(`buttons colors update...`)
-            wizardUI.startBtn.setImage(imageRegistry.getImage(cModel.scale.start.color));
-            wizardUI.endBtn.setImage(imageRegistry.getImage(cModel.scale.end.color));
-            log.trace(`gradient update...`)
-            wizardUI.gradientLabel.setImage(
-                imageRegistry.getGradientImage(
-                    cModel.scale.start.color,
-                    cModel.scale.end.color,
-                    wizardUI.gradientLabel.getBounds()
+            if (cModel.colormap.scale instanceof ContinuousScale) {
+                wizardUI.startBtn.setImage(imageRegistry.getImage(cModel.colormap.scale.start.color));
+                wizardUI.endBtn.setImage(imageRegistry.getImage(cModel.colormap.scale.end.color));
+                log.trace(`gradient update...`)
+                wizardUI.gradientLabel.setImage(
+                    imageRegistry.getGradientImage(
+                        cModel.colormap.scale.start.color,
+                        cModel.colormap.scale.end.color,
+                        wizardUI.gradientLabel.getBounds()
+                        )
                     )
-                )
+            } else {
+                log.error(`Scale type invalid: ${cModel.colormap.scale.name}`)
+            }
             log.info("updating preview colors")
             for (const i of wizardUI.gradientTable.getItems()) {
                 i.setImage(imageRegistry.getImage(i.getData().color));
             }
-            pageContinuousColor.setPageComplete(cModel.colormap.isApplicable() && cModel.scale.isDefined());
+            pageContinuousColor.setPageComplete(cModel.colormap.isApplicable() && cModel.colormap.scale.isDefined());
             pageContinuousColor.getWizard().getContainer().updateButtons();
         }
 
@@ -554,25 +559,26 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             if (visible) {
                 cModel.registerModelChangeObserver(updateColorsPreview);
 
-                // creating the scale for current selection
-                cModel.scale = new ContinuousScale(cModel);
-
-                // creating the preview labels
-                wizardUI.gradientTable.removeAll();
-                for (const l of cModel.scale.selection) {
-                    const item = new TableItem(wizardUI.gradientTable, SWT.NONE);
-                    item.setText(l.text);
-                    item.setImage(imageRegistry.getImage(l.color));
-                    item.setData(l); // associate to model
+                // creating the scale for current selection and recalculate colors
+                // FIXME create on button Selection ?
+                cModel.colormap.scaleClass = ContinuousScale;
+                // Following if Just to avoid TS validation errors (implicit cast)
+                if (cModel.colormap.scale instanceof ContinuousScale) {
+                    // creating the preview labels
+                    wizardUI.gradientTable.removeAll();
+                    for (const l of cModel.colormap.scale.selection) {
+                        const item = new TableItem(wizardUI.gradientTable, SWT.NONE);
+                        item.setText(l.text);
+                        item.setImage(imageRegistry.getImage(l.color));
+                        item.setData(l); // associate to model
+                    }
+                    pageContinuousColor.setDescription(`Select start ('${cModel.colormap.scale.start.text}') and end ('${cModel.colormap.scale.end.text}') colors to define gradient`);
+                    updateColorsPreview(cModel.colormap);
+                } else {
+                    log.error(`Scale type invalid: ${cModel.colormap.scale.name}`)
                 }
-                // force colormap scale recalculation 
-                cModel.scale.applyColors();
-
                 pageContinuousColor.setTitle(`Continuous color scale for '${cModel.property}'`);
-                pageContinuousColor.setDescription(`Select start ('${cModel.scale.start.text}') and end ('${cModel.scale.end.text}') colors to define gradient`);
 
-                // Using this property as meaning "has been shown at least once"
-                // pageContinuousColor.setPageComplete(true);
             } else {
                 cModel.removeModelChangeObserver(updateColorsPreview)
             }
@@ -588,7 +594,7 @@ const WIZARD_SUBCLASS_EXTENSION = {
 
     performFinish: function() 
     {
-        log.trace(`Wizard type ${cModel.colormap.scaleType} : finished`);
+        log.trace(`Wizard type ${cModel.colormap.scale.name} : finished`);
         // the whole enchilada is done outside, so this SWT method doesn't have to know about jArchi .ajs script
         return true;
     },
@@ -597,10 +603,7 @@ const WIZARD_SUBCLASS_EXTENSION = {
     {
         const result = cModel.hasProperty // has property selected
             && cModel.colormap.isApplicable()
-            && (cModel.colormap.scaleType == ColorMap.CATEGORICAL || (cModel.scale != undefined && cModel.scale.isDefined() ));// and the associated colorMap is applicable
-            // && pageLabelsSelection.isPageComplete() && colorModel.colormap.someIncluded() // selection page viewed and selection not empty
-            // && ((pageCategoryColor.isPageComplete() && colorModel.scaleType == ColorModel.CATEGORICAL)  // cat color page viewed 
-            //    || (pageContinuousColor.isPageComplete() && colorModel.scaleType == ColorModel.CONTINUOUS)); // or cont color page viewed
+            && cModel.colormap.scale.isDefined();
         return result;
     }
 }

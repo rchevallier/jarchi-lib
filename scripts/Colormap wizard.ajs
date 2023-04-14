@@ -10,7 +10,7 @@
 if (typeof __CALLER_SCRIPT__ == 'undefined') {
     // it is the main script
     load(__DIR__ + "lib/misc.js");
-    log.level = LogLevel.INFO;
+    log.level = LogLevel.TRACE;
     if (log.level <= LogLevel.DEBUG) {
         console.clear();
         console.show();
@@ -18,7 +18,7 @@ if (typeof __CALLER_SCRIPT__ == 'undefined') {
 }
 
 load(__DIR__ + "lib/ColormapModel.js")
-load(__DIR__ + "lib/ColormapWizard.js")
+load(__DIR__ + "lib/ColormapUI.js")
 
 
 /**
@@ -26,9 +26,10 @@ load(__DIR__ + "lib/ColormapWizard.js")
  * and for each property, the set of found values
  * TODO: extend to support relationship schemes
  * @param {ArchimateView} view the view to gather from
+ * @param {string} [property] collect only for this property
  * @returns {{[x:string]: string[]}} alphabetically ordered property names and associated labels
  */
-function gatherViewPropertiesInfo(view) {
+function gatherViewPropertiesInfo(view, property = undefined) {
     /** 
      * @type {Map<string,Set<string>>} 
      */
@@ -36,15 +37,23 @@ function gatherViewPropertiesInfo(view) {
     $(view).find("element").each (
         (e) => {
             for (let p of e.prop()) {
-                if (!props.has(p))
-                    props.set(p, new Set())
-                props.get(p).add(e.prop(p));
+                if (property === undefined || p === property) {
+                    if (!props.has(p)) {
+                        props.set(p, new Set());
+                    }
+                    props.get(p).add(e.prop(p));
+                }
             }
         }
     )
     // sorting alphabetically by property names and labels (as Array)
     const result = Object.fromEntries([...props.entries()].sort().map(([pname, labels]) => [pname, [...labels].sort()]));
-    log.trace('collected:' + JSON.stringify(result, null, 2))
+    log.trace('collected:' + JSON.stringify(result, null, 2));
+    if (Object.keys(result).length == 0) {
+        MessageDialog.openError(shell, "No properties", "No property found among the views elements");
+        log.error("No property found in these views elements. Stopping");
+        exit();
+    }
     return result;
 }
 
@@ -54,7 +63,7 @@ function gatherViewPropertiesInfo(view) {
  * @param {ArchimateView} view 
  * @param {ColorScheme} scheme
  */
-function applyColormap(view, scheme)
+function applyColorScheme(view, scheme)
 {
     $(view).find("element").each(
         (vo) => {
@@ -72,7 +81,7 @@ function applyColormap(view, scheme)
 
 
 /**
- * Create the associated legend in the view
+ * Replace or create the associated legend in the view
  * @param {ArchimateView} view 
  * @param {ColorScheme} scheme 
  */
@@ -109,11 +118,13 @@ function createLegend(view, scheme) {
     legendGroup.borderType = BORDER.RECTANGLE;
 
     let y = COLOR_HEIGHT;
-    for (let label in scheme.colormap) {
-        log.trace(`legend color is ${scheme.colormap[label]} for label '${label}'`);
+    const colormap = Object.entries(scheme.colormap);
+    colormap.sort(isCategorical ? undefined : (a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+    for (const [label, color] of colormap) {
+        log.trace(`legend label '${label}' color = ${color}`);
         let colLegend = legendGroup.createObject("diagram-model-note", X_MARGIN, y, COLOR_WIDTH, COLOR_HEIGHT);
         y += COLOR_HEIGHT + spacing -1;
-        colLegend.fillColor = scheme.colormap[label].toString();
+        colLegend.fillColor = color;
         colLegend.borderType = isCategorical ? BORDER.RECTANGLE : BORDER.NONE;
         colLegend.text = scheme.name + " = " + label;
     }
@@ -121,50 +132,34 @@ function createLegend(view, scheme) {
 
 
 /**
- * call the Wizard if no scheme to apply, and apply resulting colormap
- * @param {ColorScheme} [scheme] if not defined, will launch the Wizard
+ * The main script
  */
-function colormap(scheme = undefined) {
-    log.info("> Colormap starts")
+function colorWizard() {
+    const dir = __DIR__ + 'lib/Colormap.scheme';
+    if (!mkdirs(dir)) {
+        MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
+        log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
+    }
+    
     const theView = getCurrentView();
-
-    {
-        const dir = __DIR__ + 'lib/Colormap.scheme';
-        if (!mkdirs(dir)) {
-            MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
-            log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
-        }
-    }
-
-    if (scheme == undefined) {
-        
-        const propertiesInView = gatherViewPropertiesInfo(theView);
-        if (Object.keys(propertiesInView).length == 0) {
-            MessageDialog.openError(shell, "No properties", "No property found among the views elements");
-            log.error("No property found in these views elements. Stopping");
-            exit();    
-        }
-
-        // default property is last one used
-        const lastApplied = theView.prop(".colormap.property");
-        
-        // FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
-        cModel = new ColorModel(propertiesInView, lastApplied);
-        scheme = wizardExecute();
-    }
+    const propertiesInView = gatherViewPropertiesInfo(theView);
+    // FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
+    cModel = new ColorModel(propertiesInView, theView.prop('.colormap.property'));
+    const scheme = wizardExecute();
+    log.debug(`scheme = \n${JSON.stringify(scheme, null, 2)}`)
     if (scheme) {
-        // FIXME if continuous recalculate colors on collected labels for properties
-        applyColormap(theView, scheme);
+        applyColorScheme(theView, scheme);
         createLegend(theView, scheme);
     } else {
         log.warn("execution cancelled");
-    }
-    log.info("> Colormap end.");
+    }    
 }
 
-if (typeof __CALLER_SCRIPT__ == 'undefined') {
-    // this is the main script
-    colormap();
-} else {
+
+if (typeof __CALLER_SCRIPT__ != 'undefined') {
     log.trace(`Colormap.ajs loaded as a library for '${__CALLER_SCRIPT__}'`)
+} else {
+    log.info("*** Colormap starts")
+    colorWizard();
+    log.info("*** Colormap end.");
 }
