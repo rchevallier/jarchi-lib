@@ -1,10 +1,10 @@
 /**
- * Reapply the colormap previously applied on the current view
+ * Reapply the colormap default scheme previously applied on the current view
  * 
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see colorWizard
+ * @see colorWizard called if reapply impossible
  * @see {@link ../doc/Colormap.md}
  */
 
@@ -15,7 +15,7 @@ if (log.level <= LogLevel.DEBUG) {
     console.show();
 }
 
-// this marker global variable is defined so Colormap.ajs only used as a library, and not as a main script
+// this global variable is used as a marker flag so Colormap.ajs is only used as a library, and not as a main script
 const __CALLER_SCRIPT__ = "Colormap reapply.ajs"
 load(__DIR__ + "Colormap wizard.ajs");
 
@@ -24,14 +24,12 @@ const property = cView.prop(".colormap.property");
 log.debug(`${cView.name} property ".colormap.property" = ${property}`);
 if (property) {
     const props = gatherViewPropertiesInfo(cView, property);
-    // check props are OK ?
+    // FIXME check props are OK ?
     const cMap = new ColorMap(property, props[property]);
     cMap.loadColorScheme();
-    // check scheme ok ? all included ? accept unknownColor = excluded ??
-    // recalculate Continuous ?
     if (cMap.isApplicable()) {
         const scheme = cMap.getColorScheme();
-        log.debug(`scheme = \n${JSON.stringify(scheme, null, 2)}`)
+        log.debug(`scheme = ${JSON.stringify(scheme, null, 2)}`)
         applyColorScheme(cView, scheme);
         createLegend(cView, scheme);
     } else {
@@ -39,12 +37,6 @@ if (property) {
         MessageDialog.openWarning(shell, "Invalid color scheme", `'${property}' color scheme cannot be automatically applied on current view.\n\nExecuting the wizard`);
         colorWizard();
     }
-    // if (! ( (JSON.stringify(Object.keys(scheme)) == '["name","colormap","type","resetDefault"]')
-    //         && (typeof scheme.colormap == 'object') 
-    //         && (Object.keys(scheme.colormap).length > 0) )
-    //     ){
-    //     log.warn(`${property} JSON scheme invalid`);
-    // }
 } else {
     log.warn("No previously applied colormap for current view")
     MessageDialog.openWarning(shell, "No colormap", "No previously applied colormap for current view.\n\nExecuting the wizard");

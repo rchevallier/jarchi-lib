@@ -307,7 +307,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                 .create(container);
             GridDataFactory.defaultsFor(group).align(SWT.END, SWT.END).applyTo(group);
 
-            WidgetFactory
+            wizardUI.btnSave1 = WidgetFactory
                 .button(SWT.PUSH)
                 .text("Save")
                 .tooltip("Save as default color scheme")
@@ -358,6 +358,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
                     item.setImage(imageRegistry.getImage(item.getData().color));
                 }
             }
+            wizardUI.btnSave1.setEnabled(cModel.colormap.isApplicable());
             pageCategoryColor.setPageComplete(cModel.colormap.isApplicable());
             pageCategoryColor.getWizard().getContainer().updateButtons();
         }
@@ -449,7 +450,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 .create(container);
             GridDataFactory.defaultsFor(group).span(1, 3).indent(16, 0).align(SWT.END, SWT.END).applyTo(group);
 
-            WidgetFactory
+            wizardUI.btnSave2 = WidgetFactory
                 .button(SWT.PUSH)
                 .text("Save")
                 .tooltip("Save as default color scheme")
@@ -551,6 +552,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             for (const i of wizardUI.gradientTable.getItems()) {
                 i.setImage(imageRegistry.getImage(i.getData().color));
             }
+            wizardUI.btnSave2.setEnabled(cModel.colormap.isApplicable() && cModel.colormap.scale.isDefined());
             pageContinuousColor.setPageComplete(cModel.colormap.isApplicable() && cModel.colormap.scale.isDefined());
             pageContinuousColor.getWizard().getContainer().updateButtons();
         }
@@ -638,6 +640,8 @@ const wizardUI = {
     // CategoryColorPage
     /** @type {JavaObject} */
     catColorTable: undefined,
+    /** @type {JavaObject} */
+    btnSave1: undefined,
     // ContinuousColorPage
     /** @type {JavaObject} */
     gradientLabel: undefined,
@@ -647,9 +651,12 @@ const wizardUI = {
     startBtn: undefined,
     /** @type {JavaObject} */
     endBtn: undefined,
+    /** @type {JavaObject} */
+    btnSave2: undefined,
 
     /**
      * @param {ColorModel} model 
+     * FIXME embed the ColorModel as local and also the ImageRegistry ?
      */
     execute: function(model) {
         wizardUI.model = model;
@@ -664,10 +671,14 @@ let imageRegistry; // shared global
 /**
  * Execute the Wizard to update colorModel
  * FIXME merge with WizardUI ?
+ * @param {{[x:string]: string[]}} properties array of properties with for each the associated labels
+ * @param {string} [defaultProperty] the default property name to be selected on the Wizard 1st page
  * @returns {ColorScheme} if Wizard finished, null if cancelled
  */
-function wizardExecute() 
+function wizardExecute(properties, defaultProperty = undefined) 
 {
+    // FIXME change to a local variable?
+    cModel = new ColorModel(properties, defaultProperty);
     const ColorMapWizard = Java.extend(Java.type('org.eclipse.jface.wizard.Wizard'));
     const colorMapWizard = new ColorMapWizard (WIZARD_SUBCLASS_EXTENSION);
     colorMapWizard.setHelpAvailable(false);
@@ -677,6 +688,7 @@ function wizardExecute()
     colorMapWizard.addPage(pageContinuousColor);
     colorMapWizard.setWindowTitle("Property Colormap");
     try {
+        // FIXME change to a local variable?
         imageRegistry = new ImageRegistry(40, 16, new HexColor("#F0F0F0"), '?');
         const JWizardDialog = Java.type('org.eclipse.jface.wizard.WizardDialog');
         const wizardDialog = new JWizardDialog(shell, colorMapWizard);
