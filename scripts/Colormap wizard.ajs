@@ -142,12 +142,9 @@ function colorWizard() {
     }
     
     const theView = getCurrentView();
-    const propertiesInView = gatherViewPropertiesInfo(theView);
-    // FIXME cModel is a global variable declared in ColormapModel.js and shared with ColormapWizard.js :-(
-    cModel = new ColorModel(propertiesInView, theView.prop('.colormap.property'));
-    const scheme = wizardExecute();
-    log.debug(`scheme = \n${JSON.stringify(scheme, null, 2)}`)
+    const scheme = wizardExecute(gatherViewPropertiesInfo(theView), theView.prop('.colormap.property'));
     if (scheme) {
+        log.debug(`scheme = ${JSON.stringify(scheme, null, 2)}`)
         applyColorScheme(theView, scheme);
         createLegend(theView, scheme);
     } else {
