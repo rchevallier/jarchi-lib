@@ -16,23 +16,21 @@ Just copy the necessary `.ajs` and associated `.js` scripts/libraries to your ow
 
 **Nota Bene:** Many scripts are using the common utilities library [scripts/lib/misc.js](doc/misc.js.md)
 
-# Noteworthy scripts 
+# Noteworthy 
 
 Custom organic grown developed or adapted by yours truly, without any ChatGpt inside :-) 
 
-The `.ajs` except when noted, resides in the `scripts` directory
-
-## typing/globals.d.ts 
+## 0. [globals.d.ts](scripts/typings/globals.d.ts)
 
 For development, allow code completion in VSCode for Archimate jArchi api. To be used in conjunction with [`jsconfig.json`](https://code.visualstudio.com/docs/languages/jsconfig).
 
-## 1. [Colormap.ajs, Colormap - reapply.ajs](doc/Colormap.md)
+## 1. [Colormap wizard.ajs](doc/Colormap%20wizard.md), [Colormap reapply.ajs](doc/Colormap%20reapply.md)
 
 A property heatmap Wizard, with either a discrete categorical color scale or a continuous (gradient) numeric color scale. 
 
 See [User's Guide](doc/Colormap.md) for details and installation.
 
-## 2. Generate legend.ajs
+## 2. [Generate legend.ajs](scripts/Generate%20legend.ajs)
 
 Modified extended version of the script of David Girard, create the view legend for each type of element used in the view.
 The specialization is taken into account **only** if there is a custom icon associated.
