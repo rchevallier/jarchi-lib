@@ -215,8 +215,8 @@ interface Collection {
 
     each(f: (o: ArchiConcept & VisualObject) => void): void;
     clone(): Collection;
-    first(): ModelObject & null;
-    get(n: number): ModelObject & null;
+    first(): ModelObject | null;
+    get(n: number): ModelObject | null;
     size(): number;
     is(selector: Selector): boolean;
     delete(): void;
@@ -317,7 +317,7 @@ interface Java {
 }
 
 
-function read(io: string): string;
+// function read(io: string): string;
 
 declare var Java: Java;
 // Predefined packages

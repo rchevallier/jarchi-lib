@@ -1,0 +1,162 @@
+/**
+ * SWT Wizard to set a color based of property value
+ * 
+ * @license Apache-2.0 cf LICENSE-2.0.txt
+ * @author rchevallier
+ * @copyright 2023 rchevallier
+ * @see {@link ../doc/Colormap.md}
+ */
+
+if (typeof __CALLER_SCRIPT__ == 'undefined') {
+    // it is the main script
+    load(__DIR__ + "lib/misc.js");
+    log.level = LogLevel.TRACE;
+    if (log.level <= LogLevel.DEBUG) {
+        console.clear();
+        console.show();
+    }
+}
+
+load(__DIR__ + "lib/ColormapModel.js")
+load(__DIR__ + "lib/ColormapUI.js")
+
+
+/**
+ * Will gather all properties of all elements visual objects in the view (no relationships)
+ * and for each property, the set of found values
+ * TODO: extend to support relationship schemes
+ * @param {ArchimateView} view the view to gather from
+ * @param {string} [property] collect only for this property
+ * @returns {{[x:string]: string[]}} alphabetically ordered property names and associated labels
+ */
+function gatherViewPropertiesInfo(view, property = undefined) {
+    /** 
+     * @type {Map<string,Set<string>>} 
+     */
+    const props = new Map(); 
+    $(view).find("element").each (
+        (e) => {
+            for (let p of e.prop()) {
+                if (property === undefined || p === property) {
+                    if (!props.has(p)) {
+                        props.set(p, new Set());
+                    }
+                    props.get(p).add(e.prop(p));
+                }
+            }
+        }
+    )
+    // sorting alphabetically by property names and labels (as Array)
+    const result = Object.fromEntries([...props.entries()].sort().map(([pname, labels]) => [pname, [...labels].sort()]));
+    log.trace('collected:' + JSON.stringify(result, null, 2));
+    if (Object.keys(result).length == 0) {
+        MessageDialog.openError(shell, "No properties", "No property found among the views elements");
+        log.error("No property found in these views elements. Stopping");
+        exit();
+    }
+    return result;
+}
+
+
+/**
+ * Apply to the view the heatmap as configured by the wizard
+ * @param {ArchimateView} view 
+ * @param {ColorScheme} scheme
+ */
+function applyColorScheme(view, scheme)
+{
+    $(view).find("element").each(
+        (vo) => {
+            const label = vo.prop(scheme.name);
+            if (label && (label in scheme.colormap)) {
+                vo.fillColor =  scheme.colormap[label];
+            } else if (scheme.resetDefault) {
+                vo.fillColor = null
+            }
+        }
+    );
+    // then we save the ref as the last applied colormap for the view, so it can be reapplied without wizard
+    view.prop(".colormap.property", scheme.name);
+}
+
+
+/**
+ * Replace or create the associated legend in the view
+ * @param {ArchimateView} view 
+ * @param {ColorScheme} scheme 
+ */
+function createLegend(view, scheme) {
+    const GRID_SIZE = 12;
+    const X_MARGIN = GRID_SIZE / 2;
+    const Y_MARGIN = GRID_SIZE / 2;
+    const COLOR_HEIGHT = 30;
+    const COLOR_WIDTH = 12 * GRID_SIZE;
+    let X_LEGEND_ORIGIN = GRID_SIZE;
+    let Y_LEGEND_ORIGIN = GRID_SIZE;
+    const LEGEND_WIDTH = 2 * X_MARGIN + COLOR_WIDTH;
+    const LEGEND_NAME = "Color Legend";
+    const LEGEND_BACKGROUND = "#F7F7F7";
+    const LEGEND_FONT_STYLE = "bold";
+
+    const isCategorical = scheme.type == "Categorical";
+    const spacing = (isCategorical) ? Y_MARGIN : 0;
+
+    const currentLegend = $(view).find("." + LEGEND_NAME).filter("diagram-model-group").first();
+    if (currentLegend && scheme.resetDefault) {
+        log.info(`previous ${LEGEND_NAME} found, deleting`)
+        X_LEGEND_ORIGIN = currentLegend.bounds.x; 
+        Y_LEGEND_ORIGIN = currentLegend.bounds.y;
+        currentLegend.delete();
+    }
+    const legendGroup = view.createObject(
+        "diagram-model-group", X_LEGEND_ORIGIN, Y_LEGEND_ORIGIN, LEGEND_WIDTH, 
+            COLOR_HEIGHT + (COLOR_HEIGHT + spacing) * Object.keys(scheme.colormap).length + spacing
+        );
+    legendGroup.name = LEGEND_NAME;
+    legendGroup.fillColor = LEGEND_BACKGROUND;
+    legendGroup.fontStyle = LEGEND_FONT_STYLE
+    legendGroup.borderType = BORDER.RECTANGLE;
+
+    let y = COLOR_HEIGHT;
+    const colormap = Object.entries(scheme.colormap);
+    colormap.sort(isCategorical ? undefined : (a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+    for (const [label, color] of colormap) {
+        log.trace(`legend label '${label}' color = ${color}`);
+        let colLegend = legendGroup.createObject("diagram-model-note", X_MARGIN, y, COLOR_WIDTH, COLOR_HEIGHT);
+        y += COLOR_HEIGHT + spacing -1;
+        colLegend.fillColor = color;
+        colLegend.borderType = isCategorical ? BORDER.RECTANGLE : BORDER.NONE;
+        colLegend.text = scheme.name + " = " + label;
+    }
+}
+
+
+/**
+ * The main script
+ */
+function colorWizard() {
+    const dir = __DIR__ + 'lib/Colormap.scheme';
+    if (!mkdirs(dir)) {
+        MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
+        log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
+    }
+    
+    const theView = getCurrentView();
+    const scheme = wizardExecute(gatherViewPropertiesInfo(theView), theView.prop('.colormap.property'));
+    if (scheme) {
+        log.debug(`scheme = ${JSON.stringify(scheme, null, 2)}`)
+        applyColorScheme(theView, scheme);
+        createLegend(theView, scheme);
+    } else {
+        log.warn("execution cancelled");
+    }    
+}
+
+
+if (typeof __CALLER_SCRIPT__ != 'undefined') {
+    log.trace(`Colormap.ajs loaded as a library for '${__CALLER_SCRIPT__}'`)
+} else {
+    log.info("*** Colormap starts")
+    colorWizard();
+    log.info("*** Colormap end.");
+}
