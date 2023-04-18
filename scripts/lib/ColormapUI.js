@@ -199,6 +199,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                     colormap.scaleClass = CategoricalScale;
                 wizardUI.btnCategorical.setSelection(cModel.colormap.scaleClass == CategoricalScale);
                 wizardUI.btnContinuous.setSelection(cModel.colormap.scaleClass == ContinuousScale);
+                pageLabelsSelection.setPageComplete(cModel.colormap.someIncluded());
             } catch (err) {
                 log.error(err.toString())
             }
@@ -219,6 +220,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                     t.setText(cl.text);
                     t.setData(cl);  // associate the ColorLabel
                 }
+                pageLabelsSelection.setTitle(`Labels selection for '${cModel.property}'`)
                 // set their initial state from model
                 updateLabelCheckMarks(cModel.colormap); 
             } else {
