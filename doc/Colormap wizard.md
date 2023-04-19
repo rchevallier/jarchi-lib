@@ -8,7 +8,7 @@ Following files and directory structure **MUST** be copied in the jArchi scripti
 
 ```
 Colormap wizard.ajs - launch the Wizard on the current view
-Colormap reapply.ajs - reapply the color scheme on the current view
+Colormap reapply.ajs - reapply the color scheme of the current view
 lib/
     misc.js - scripts common utilities
     ColorModel.js 

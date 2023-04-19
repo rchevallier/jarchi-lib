@@ -28,7 +28,7 @@ For development, allow code completion in VSCode for Archimate jArchi api. To be
 
 A property heatmap Wizard, with either a discrete categorical color scale or a continuous (gradient) numeric color scale. 
 
-See [User's Guide](doc/Colormap.md) for details and installation.
+See [User's Guide](doc/Colormap%20wizard.md) for details and installation.
 
 ## 2. [Generate legend.ajs](scripts/Generate%20legend.ajs)
 
