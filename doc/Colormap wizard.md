@@ -68,7 +68,7 @@ A color has not been defined yet is represented by ![Unknown color](./img/Unknow
 
 In step 3), for both color schemes, you can save the current color definition as the default (and the one to reapply per default for the property) using the `Save` button. `Reload` will overwrite the current label selection color scheme with the saved one.
 
-**NB**: the **Reapply** script is based on the name of the property. It will reapply the color scheme definition **as saved**, which may be not the one last manually applied but not saved.
+**NB**: the [reapply script](Colormap%20reapply.md) is based on the name of the property. It will reapply the color scheme definition **as saved**, which may be not the one last manually applied but not saved.
 
 ![default scheme](./img/Default%20Color.png)
 

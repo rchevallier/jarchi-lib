@@ -5,7 +5,7 @@
  * @author rchevallier
  * @copyright 2023 rchevallier
  * @see colorWizard called if reapply impossible
- * @see {@link ../doc/Colormap.md}
+ * @see {@link ../doc/Colormap%20wizard.md}
  */
 
 load(__DIR__ + "lib/misc.js");
@@ -15,7 +15,7 @@ if (log.level <= LogLevel.DEBUG) {
     console.show();
 }
 
-// this global variable is used as a marker flag so Colormap.ajs is only used as a library, and not as a main script
+// this global variable is used as a marker flag so Colormap%20wizard.ajs is only used as a library, and not as a main script
 const __CALLER_SCRIPT__ = "Colormap reapply.ajs"
 load(__DIR__ + "Colormap wizard.ajs");
 

@@ -1,11 +1,12 @@
 /**
- * Model state classes for Colormap.ajs script
+ * Model state classes for Colormap*.ajs script
  * 
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see {@link ./doc/Colormap.md}
- * @see {@link ../Colormap.ajs}
+ * @see {@link ./doc/Colormap%20wizard.md}
+ * @see {@link ../Colormap%20wizard.ajs}
+ * @see {@link ../ColormapUI.js}
  */
 
 /**
@@ -77,6 +78,7 @@ class ColorLabel {
      */
     constructor(text, color, excluded = false) {
         this._text = text;
+        this._asNumber = parseFloat(text);
         this._color = color;
         this._excluded = excluded;
     }
@@ -95,12 +97,11 @@ class ColorLabel {
     }
 
     get textAsNumber() {
-        const result = parseFloat(this._text);
-        return isNaN(result) ? null : result
+        return isNaN(this._asNumber) ? null : this._asNumber
     }
 
     get isNumeric() {
-        return !isNaN(parseFloat(this._text));
+        return !isNaN(this._asNumber);
     }
 
     get excluded() {
@@ -426,7 +427,7 @@ class ContinuousScale extends CategoricalScale {
 
     /**
      * Precalculate sort and extremities
-     * @private
+     * @protected
      */
     _init() {
         this._selection = this.colormap.selection.sort((a, b) => a.textAsNumber - b.textAsNumber);
@@ -497,6 +498,24 @@ class ContinuousScale extends CategoricalScale {
         this._colormap._fireEvent(this._colormap.labels(true));
     }
 
+}
+
+class DivergingScale extends ContinuousScale {
+
+    constructor (colormap) {
+        super(colormap);
+        this._middle = new ColorLabel('0');
+    }
+
+    _init() {
+        super._init();
+        // if 0 between extremities, it is default middle value, else middle value
+        if (this.start.textAsNumber < 0 && this.end.textAsNumber > 0) {
+            this._middle._text = "0"
+        } else {
+            // this._middle._text = (Math.).toString()
+        }
+    }
 }
 
 

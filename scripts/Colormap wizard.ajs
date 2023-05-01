@@ -4,7 +4,7 @@
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see {@link ../doc/Colormap.md}
+ * @see {@link ../doc/Colormap%wizard.md}
  */
 
 if (typeof __CALLER_SCRIPT__ == 'undefined') {
@@ -154,7 +154,7 @@ function colorWizard() {
 
 
 if (typeof __CALLER_SCRIPT__ != 'undefined') {
-    log.trace(`Colormap.ajs loaded as a library for '${__CALLER_SCRIPT__}'`)
+    log.trace(`'Colormap wizard.ajs' loaded as a library for '${__CALLER_SCRIPT__}'`)
 } else {
     log.info("*** Colormap starts")
     colorWizard();

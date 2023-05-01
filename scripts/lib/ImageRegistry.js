@@ -4,9 +4,9 @@
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see {@link ./doc/Colormap.md}
- * @see {@link ../Colormap.ajs}
- * @see {@link ./ColormapWizard.ajs}
+ * @see {@link ./doc/Colormap%20wizard.md}
+ * @see {@link ../ColormapUI.js}
+ * @see {@link ./Colormap%wizard.ajs}
  */
 
 const RGB = Java.type('org.eclipse.swt.graphics.RGB');
@@ -27,10 +27,15 @@ class ImageRegistry {
     }
 
     /**
+     * Create the ImageRegistry cache
+     * NB: no cache cleaning feature, as live span expected to be short
+     * 
      * @param {number} width optional override default width for images (24 pixel)
      * @param {number} height optional override default height for images (24 pixel)
+     * @param {HexColor} unknownColor optional, default light grey
+     * @param {string} unknownText optional, default question mark
      */
-    constructor(width = 24, height = 24, unknownColor, unknownText) {
+    constructor(width = 24, height = 24, unknownColor = new HexColor("#F0F0F0"), unknownText = '?') {
         /** @type {Map<string,JavaObject>} */
         this.cache = new Map();
         this.defaultWidth = width;
@@ -121,56 +126,61 @@ class ImageRegistry {
 
 
     /**
+     * @typedef {{color: HexColor, x: number}} Segment
      * 
-     * @param {HexColor} color1 Gradient start color
-     * @param {HexColor} color2 Gradient end color
-     * @param {number} width image width
-     * @param {number} height image height
+     * @param {Segment[]} segments Gradient start color
+     * @param {number} height image height (width is deducted last segments)
      * @param {JavaObject} [device] SWT Device
      * @returns {SWTImage}
      */
-    _createGradientImage(color1, color2, width, height, device = ImageRegistry.device) {
-
-        log.trace(`gradient size is ${width}x${height} for colors ${color1} to ${color2}`);
+    _createGradientImage(segments, height, device = ImageRegistry.device) {
+        assert(segments[0].x == 0);
+        assert(segments.length >= 2);
+        const width = segments[segments.length-1].x;
+        log.trace(`gradient size is ${width}x${height} for colors ${segments.map( (s) => s.color.toString()).join('-')}`);
         const image = new SWTImage(device, width, height);
         const gc = new GC(image);
-        const c1 = new Color(ImageRegistry.hexToSwtRGB(color1));
-        const c2 = new Color(ImageRegistry.hexToSwtRGB(color2));
+        let x = 0;
         try {
-            gc.setForeground(c1);
-            gc.setBackground(c2);
-            gc.fillGradientRectangle(0, 0, width, height, false);
+            for (let i = 0; i < segments.length - 1; i++) {
+                const c1 = new Color(ImageRegistry.hexToSwtRGB(segments[i].color));
+                const c2 = new Color(ImageRegistry.hexToSwtRGB(segments[i + 1].color));
+                gc.setForeground(c1);
+                gc.setBackground(c2);
+                const segmentWidth = segments[i+1].x - segments[i].x;
+                log.trace(`colorizing gradient ${i} of width ${segmentWidth}`)
+                gc.fillGradientRectangle(x, 0, segmentWidth, height, false);
+                x += segments[i].x;
+              }
         } finally {
             gc.dispose();
-            c1.dispose();
-            c2.dispose();
         }
         return image;
     }
 
-
+ 
     /**
      * Get a gradient image from 2 colors from cache, store it in cache if needs to be created
+
      * 
-     * @param {HexColor} color1 Gradient start color, can be undefined
-     * @param {HexColor} color2 Gradient end color, can be undefined
+     * @param {Segment[]} segments Gradient start color, colors can be undefined
      * @param {JavaObject} bounds SWT Bound object
      * @returns {JavaObject} an SWT gradient image
      */
-    getGradientImage(color1, color2, bounds) {
+    getGradientImage(segments, bounds) {
         // handle undefined colors
-        if (!color1 || !color2) {
-            // no gradient in this case, even if 1 extremity color is defined
-            color1 = this.unknownColor;
-            color2 = this.unknownColor;
+        if (segments.map((s) => s.color).some((c) => c == undefined)) {
+            // no gradient in this case, even if 1 color is defined
+            segments.forEach((s) => s.color = this.unknownColor);
         }
-        log.trace(`creating gradient color ${color1} to ${color2} `)
+        const colors = segments.map( (s) => s.color.toString()).join('-');
+        log.trace(`creating gradient color ${colors} `);
         const width = bounds.width;
         const height = bounds.height;
-        const key = `${color1}-${color2}:${width}x${height}`;
+        const key = `${colors}:${width}x${height}`
         if (!this.cache.has(key)) {
             log.trace(`Gradient image not found, creating for ${key}`);
-            this.cache.set(key, this._createGradientImage(color1, color2, width, height));
+            this.cache.set(key, this._createGradientImage(segments, height));
         } else {
             log.trace(`Gradient image ${key} found in cache`);
         }
