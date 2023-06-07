@@ -204,7 +204,7 @@ if (typeof LogLevel == 'undefined') {
         if (!assertion) {
             msg = "Assertion failed! " + msg
             console.error(msg)
-            throw {message: msg}
+            throw {assertionFailed: msg}
         }        
     }
 

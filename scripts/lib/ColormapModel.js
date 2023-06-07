@@ -72,19 +72,38 @@ class ColorLabel {
      * Association of a label with a color, and a selection flag
      * if color not defined (yet), has value undefined
      * 
-     * @param {string} text Mandatory
+     * @param {string} text Mandatory, cannot be undefined
      * @param {HexColor} [color] optional
      * @param {boolean} [excluded] if selected by default or not 
      */
     constructor(text, color, excluded = false) {
+        assert(text != undefined, 'Color label text undefined at constructor');
         this._text = text;
         this._asNumber = parseFloat(text);
         this._color = color;
         this._excluded = excluded;
     }
 
+    /**
+     * 
+     * @param {string} [text] overwrite the text label if set 
+     * @returns a copy with same text, color and excluded flags
+     */
+    clone(text) {
+        return new ColorLabel(text != undefined? text: this.text, this.color, this.excluded);
+    }
+
     get text() {
         return this._text;
+    }
+
+    /**
+     * @param {string} t
+     */
+    set text(t) {
+        assert(t != undefined, `Setting ColorLabel text to undefined. Previously: ${this.text}`);
+        this._text = t;
+        this._asNumber = parseFloat(t);
     }
 
     get color() {
@@ -133,13 +152,13 @@ class ColorMap extends Map {
      */
     constructor (pname, labels, color, resetDefault = true, scaleClass = CategoricalScale) {
         super();
-        assert (pname != undefined);
+        assert (pname != undefined, "Property name cannot be undefined");
         this._model = undefined;
         this._pname = pname;
         this._resetDefault = resetDefault;
         if (labels != undefined)
         for (const l of labels) {
-            this.set(l, new ColorLabel(l, color))
+            this.set(l, new ColorLabel(l, color));
         }
         this._scale = new scaleClass(this); 
     }
@@ -153,11 +172,17 @@ class ColorMap extends Map {
      * @param {typeof CategoricalScale | typeof ContinuousScale} clazz
      */
     set scaleClass(clazz) {
-        if (clazz != this._scale.constructor) {
-            log.debug(`Setting ScaleClass to ${clazz.name} for ${this.name}`)
-            this._scale = new clazz(this);
+        assert (this._scale != undefined)
+        if (clazz != this.scaleClass) {
+            log.debug(`Setting ScaleClass ${clazz.name} for ${this.name}... (from ${this.scaleClass.name})`)
+            try {
+                this._scale = new clazz(this);
+            } catch (err) {
+                log.error(err.toString())
+            }
+            log.debug(`ScaleClass set to ${clazz.name} for ${this.name} => ${this.scaleClass.name}`)
         } else {
-            log.trace(`No ScaleClass change for ${this.name} (${clazz.name})`)
+            log.trace(`No ScaleClass change for ${this.name}=${this.scaleClass.name} (${clazz.name})`)
         }
     }
 
@@ -209,6 +234,8 @@ class ColorMap extends Map {
     _fireEvent(labels) {
         if (this.model != undefined)
             this.model.notifyModelChange(labels)
+        else 
+            log.debug("No associated model, not firing event");
     }
 
     allExcluded() {
@@ -236,7 +263,6 @@ class ColorMap extends Map {
     isApplicable() {
         const selected = this.selection;
         return selected.length > 0 && selected.every(cl => cl.color != undefined);
-        // FIXME add scale validation ?
     }
 
     /**
@@ -298,7 +324,7 @@ class ColorMap extends Map {
         this._fireEvent(labels);
 }
     /**
-     * Load if found the default colors
+     * Load if found the saved color scheme
      */
     loadColorScheme() {
         log.debug(`trying to load scheme for ${this.name}`);
@@ -311,8 +337,13 @@ class ColorMap extends Map {
                 if (scheme.colormap[label]) 
                     {this.get(label).color = new HexColor(scheme.colormap[label]) }
             });
-            if (scheme.type)
-                this.scaleClass = scheme.type == ContinuousScale.label ? ContinuousScale : CategoricalScale;
+            assert (scheme.type != undefined, "Scheme has no type")
+            this.scaleClass = scheme.type == ContinuousScale.label ? ContinuousScale : CategoricalScale;
+            if (this.scale instanceof ContinuousScale && scheme.Continuous.middle != undefined) {
+                this.scale.middle.text = `${scheme.Continuous.middle.value} - middle color`;
+                this.scale.middle.color = new HexColor(scheme.Continuous.middle.color);
+                this.scale.enableMiddleColor(true);
+            }
             this._fireEvent(this.labels());
         } catch (err) {
             log.warn("Cannot load scheme for " + this.name + "\n" + err.toString());
@@ -347,11 +378,19 @@ class ColorMap extends Map {
             scheme.Continuous = {
                 start: {
                     value: this.scale.start.textAsNumber, 
-                    color: this.scale.start.color.toString()}, 
+                    color: this.scale.start.color.toString()
+                }, 
                 end: {
                     value: this.scale.end.textAsNumber,
-                    color: this.scale.end.color.toString()}
+                    color: this.scale.end.color.toString()
                 }
+            }
+            if (this.scale.isMiddleColorEnabled()) {
+                scheme.Continuous.middle = {
+                    value: this.scale.middle.textAsNumber,
+                    color: this.scale.middle.color.toString()
+                }
+            }
         }
         return scheme;
     }
@@ -384,7 +423,7 @@ class CategoricalScale {
         return this._colormap;
     }
 
-    calcColors() {
+    _calcSelectionColors() {
         // default do nothing
     }
 
@@ -393,12 +432,14 @@ class CategoricalScale {
     }
 }
 
+
 /**
- * For now the only intelligent scale available
+ * For now the only intelligent scale available, based on n contiguous color gradients
  * Possible other scales to be implemented:
- *   - DivergingScale: 3 colors, middle white (at 0 per default?)
  *   - StepScale: continuous, but with discrete step ranges
  * 
+ * 
+ * FIXME: middle allways exists. Use excluded flag to use it or not
  */
 class ContinuousScale extends CategoricalScale {
 
@@ -410,35 +451,41 @@ class ContinuousScale extends CategoricalScale {
         return ContinuousScale.label
     }
 
+    // match indexes of this._edges[]
+    static EDGE = { START: 0, MIDDLE: 1, END: 2};
 
     /**
      * function to calculate a colormap from a linear color scale
      * based on the model selected labels at creation time.
-     * // FIXME changer to ColorMap or morph from a ColorMap ?
      * @param {ColorMap} colormap 
      */
     constructor(colormap) {
         super(colormap);
-        // sort numerically
-        // FIXME JIT calculation in colormap
-        this._init();
-        this.calcColors();
+        this._middle = new ColorLabel("undefined", undefined, true); // no color, excluded by default
+        this.resetEdges();
     }
 
     /**
-     * Precalculate sort and extremities
-     * @protected
+     * Precalculate sort and edges
      */
-    _init() {
+    resetEdges() {
         this._selection = this.colormap.selection.sort((a, b) => a.textAsNumber - b.textAsNumber);
-        this._start = this._selection[0];
-        this._end = this._selection[this._selection.length - 1];
+        this._start = this._selection[0].clone();
+        this._end = this._selection[this._selection.length - 1].clone();
+        if (this.start.textAsNumber < 0 && this.end.textAsNumber > 0) {
+                this._middle = this.middle.clone("0 - middle color");
+        } else {
+            const middleValue = (this.start.textAsNumber +  this.end.textAsNumber) / 2;
+            this._middle = this.middle.clone(middleValue.toExponential(2) + " - middle color");
+        }
+        this._edges = [this._start, this._middle, this._end];
+        this._applyColors();
     }
 
     get selection() {
         return this._selection;
     }
-
+   
     get start() {
         return this._start;
     }
@@ -448,74 +495,140 @@ class ContinuousScale extends CategoricalScale {
     }
 
     /**
-     * Check if the scale is properly defined = start and end colors exists
+     * @returns {ColorLabel?} the color label or 
+     */
+    get middle() {
+        return this._middle;
+    }
+
+    /**
+     * 
+     * @param {boolean} b 
+     */
+    enableMiddleColor(b) {
+        log.debug(`middle included <- ${b}`)
+        this.middle.included = b;
+        this._applyColors();
+    }
+
+    isMiddleColorEnabled(){
+        return this.middle.included;
+    }
+
+    /**
+     * Set the middle color value
+     * 
+     * @param {number} x the relative position in the gradient scale
+     * @param {boolean} absolute if true value is absolute otherwise a ratio (between 0 and 1)
+     */
+    setMiddlePosition(x, absolute) {
+        if (this.isMiddleColorEnabled()) {
+            log.trace(`Setting ${absolute ? "absolute" : "relative"} position for ${x}`);
+            const value = absolute ? x : this.ratioToValue(x);
+            this.middle.text = `${value} - middle color`;
+            log.debug(`Middle position <- ${this.middle.textAsNumber}`)
+            this._applyColors();
+        } else {
+            log.trace("Middle color not enabled, not changing position")
+        }
+    }
+
+    /**
+     * 
+     * @returns {ColorLabel[]} the enabled edges color labels: start, end and middle if enabled
+     */
+    get edges() {
+        return this._edges.filter(e => e.included);
+    }
+
+    /**
+     * 
+     * @returns {Edge[]} the edges as relative % position from extremities. Does not include Middle if not enabled
+     */
+    relativeEdges() {
+        return this.edges.map((cl) => {return {color: cl.color, x: this.valueToRatio(cl.textAsNumber)}})
+    }
+    
+    /**
+     * Check if the scale is properly defined = start and end colors exists, and if middle color optionally define, also 
      * @returns {boolean} 
      */
     isDefined() {
-        return this.start.color != undefined && this.end.color != undefined
+        return this.start.color != undefined 
+            && this.end.color != undefined 
+            && ( !this.isMiddleColorEnabled() || this.middle.color != undefined )
     }
-
 
     /**
-     * Event listener, change one of the extremity color for the gradient 
-     * @param {HexColor} color 
-     * @param {boolean} end 
+     * Return the absolute value from a relative position in the scale
+     * @param {number} ratio a number between 0 and 1 
+     * @returns {number} the value in the current scale
      */
-    setGradientColor(color, end) {
-        const extremity = end ? "end" : "start";
-        this[extremity].color = color;
-        log.trace(`${extremity}: ${this[extremity].color.toString()}`);
-        this.applyColors();
+    ratioToValue(ratio) {
+        return this.start.textAsNumber + ratio * (this.end.textAsNumber - this.start.textAsNumber)
     }
 
-    calcColors() {
+    /**
+     * Calculate the relative position of the value in the scale as %
+     * @param {number} value 
+     * @returns {number} value between 0 and 1
+     */
+    valueToRatio(value) {
+        return ((value - this.start.textAsNumber) / (this.end.textAsNumber - this.start.textAsNumber))
+    }
+    
+    /**
+     * Event listener, change one of the extremity color for the gradient (start, middle, end)
+     * @param {HexColor} color 
+     * @param {number} edge
+     */
+    setGradientColor(color, edge) {
+        this.edges[edge].color = color;
+        log.trace(`edge #${edge}: ${this.edges[edge].color.toString()}`);
+        this._applyColors();
+    }
+
+    _calcSelectionColors() {
         // calculate colors for all labels   
         if  (this.isDefined()) {
-            const [sr, sg, sb] = this.start.color.toRGB();
-            const [er, eg, eb] = this.end.color.toRGB();
-            const delta = this.end.textAsNumber - this.start.textAsNumber;
-            log.trace(`End = ${this.end.textAsNumber}, Start = ${this.start.textAsNumber}, Delta = ${delta}`);
-            for (const l of this.selection) {
-                const ratio = (l.textAsNumber - this.start.textAsNumber) / delta;
-                const r = Math.round(er * ratio + sr * (1 - ratio));
-                const g = Math.round(eg * ratio + sg * (1 - ratio));
-                const b = Math.round(eb * ratio + sb * (1 - ratio));    
-                const hexColor = HexColor.fromRGB(r, g, b);
-                log.trace(`Ratio for ${l.text}: ${l.textAsNumber} = ${ratio.toPrecision(4)} => ${hexColor}`);
-                l.color = hexColor;
+            const edges = this.edges;
+            for (let i = 1; i < edges.length; i++) {
+                const start = edges[i-1];
+                const end = edges[i];
+                const [sr, sg, sb] = start.color.toRGB();
+                const [er, eg, eb] = end.color.toRGB();
+                const delta = end.textAsNumber - start.textAsNumber;
+                log.trace(`End = ${end.textAsNumber}, Start = ${start.textAsNumber}, Delta = ${delta}`);
+                for (const l of this.selection) {
+                    if (l.textAsNumber >= start.textAsNumber && l.textAsNumber <= end.textAsNumber) {
+                        const ratio = (l.textAsNumber - start.textAsNumber) / delta;
+                        const r = Math.round(er * ratio + sr * (1 - ratio));
+                        const g = Math.round(eg * ratio + sg * (1 - ratio));
+                        const b = Math.round(eb * ratio + sb * (1 - ratio));    
+                        const hexColor = HexColor.fromRGB(r, g, b);
+                        log.trace(`Ratio for ${l.text}: ${l.textAsNumber} = ${ratio.toPrecision(4)} => ${hexColor}`);
+                        l.color = hexColor;
+                    }
+                }
             }
         } else {
-            log.info("Undefined color at gradient extremity. Gradient not calculated")
+            log.info("Undefined color at gradient extremity. Gradient colors not calculated");
+            for (const l of this.selection) {
+                l.color = undefined;
+            }
         }
     }
 
     /**
      * Recalculate colors for the current Colormap selection, in the sorted numeric order
+     * recalculate if necessary the start, end, middle and sort the selection
+     * @private
      */
-    applyColors() {
-        this._init();
-        this.calcColors()
-        this._colormap._fireEvent(this._colormap.labels(true));
+    _applyColors() {
+        this._calcSelectionColors();
+        this.colormap._fireEvent(this.colormap.labels(true));
     }
 
-}
-
-class DivergingScale extends ContinuousScale {
-
-    constructor (colormap) {
-        super(colormap);
-        this._middle = new ColorLabel('0');
-    }
-
-    _init() {
-        super._init();
-        // if 0 between extremities, it is default middle value, else middle value
-        if (this.start.textAsNumber < 0 && this.end.textAsNumber > 0) {
-            this._middle._text = "0"
-        } else {
-            // this._middle._text = (Math.).toString()
-        }
-    }
 }
 
 
@@ -585,15 +698,18 @@ class ColorModel extends Map {
      * @param {string[]} labels 
      */
     notifyModelChange(labels) {
-        log.trace(`Firing event...`);
-        const changed = this.colormap.subset(labels);
-        log.debug(`Firing event for ${[...changed.keys()]}`);
-        this._observers.forEach(
-            (f) => {
-                log.trace(`... callback for ${f.name}`);
-                f(changed);
-            }
-        )
+        if (this._observers.size> 0) {
+            const changed = this.colormap.subset(labels);
+            log.debug(`Firing event for ${[...changed.keys()]}`);
+            this._observers.forEach(
+                (f) => {
+                    log.trace(`... handled by callback for ${f.name}`);
+                    f(changed);
+                }
+            )
+        } else {
+            log.trace('No observers declared for event firing')
+        }
     }
 
     /**

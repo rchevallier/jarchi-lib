@@ -126,6 +126,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .label(SWT.NONE)
                 .text("Color scale:")
                 .create(container);
+
             const group = new Composite(container, SWT.NONE);
             group.setLayout (new FillLayout (SWT.HORIZONTAL));
             group.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
@@ -134,18 +135,17 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
                 .button(SWT.RADIO)
                 .text("Categorical (text)")
                 .tooltip("Use a discrete color scheme")
-                .onSelect(e => cModel.colormap.scaleClass = e.source.getData())
+                .onSelect(e => cModel.colormap.scaleClass = CategoricalScale)
                 .create(group);
-            wizardUI.btnCategorical.setData(CategoricalScale);
+            // wizardUI.btnCategorical.setData();
             wizardUI.btnCategorical.addMouseListener(gotoNextPageOnDblClick())            
 
             wizardUI.btnContinuous = WidgetFactory
                 .button(SWT.RADIO)
                 .text("Continuous (numeric)")
                 .tooltip("Use a continuous (gradient) color scheme (for numeric labels only)")
-                .onSelect(e => cModel.colormap.scaleClass = e.source.getData())
+                .onSelect(e => cModel.colormap.scaleClass = ContinuousScale)
                 .create(group);
-            wizardUI.btnContinuous.setData(ContinuousScale);
             wizardUI.btnContinuous.addMouseListener(gotoNextPageOnDblClick());
 
             WidgetFactory
@@ -177,7 +177,7 @@ const pageLabelsSelection = new ColorMapWizardPage("pageLabelsSelection",
          */
         function updateLabelCheckMarks(colormap) {
             try {
-                assert(colormap != undefined)
+                assert(colormap != undefined, "Colormap undefined when calling updateLabelCheckMarks")
                 log.trace(`${updateLabelCheckMarks.name}: updating check mark states`);
                 const table = wizardUI.labelsTable;
                 const updated = [...colormap.keys()];
@@ -367,7 +367,7 @@ const pageCategoryColor = new ColorMapWizardPage("pageCategoryColor",
          * @param {ColorMap} colormap 
          */
         function updateColorImages(colormap) {
-            assert (colormap != undefined)
+            assert (colormap != undefined, "Colormap undefined when calling updateColorImages")
             for (const item of wizardUI.catColorTable.getItems()) {
                 const label = item.getText();
                 if (colormap.has(label)) {
@@ -410,10 +410,11 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
     createControl(parent)
     {
         try {
+            log.trace(pageContinuousColor.getName()+'...');
             const container = new Composite(parent, SWT.NONE);
 
             // FIXME factorize these settings for all page containers
-            GridLayoutFactory.swtDefaults().numColumns(6).margins(20, 4).spacing(4, 4).applyTo(container); 
+            GridLayoutFactory.swtDefaults().numColumns(5).margins(20, 4).spacing(4, 4).applyTo(container); 
 
             function setColor(event) {
                 const colorDlg = new CustomColorDialog(container.getShell());
@@ -421,9 +422,9 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                     const selectedColor = colorDlg.open();
                     if (selectedColor) {
                         const hexColor = ImageRegistry.swtRGBToHex(selectedColor);
-                        log.info(`Setting color ${hexColor} for ${ event.source == wizardUI.endBtn ? 'end' : 'start'}Button`)
+                        log.info(`Setting color ${hexColor} for button #${event.source.getData()}`)
                         if (cModel.colormap.scale instanceof ContinuousScale)
-                            cModel.colormap.scale.setGradientColor(hexColor, event.source === wizardUI.endBtn)
+                            cModel.colormap.scale.setGradientColor(hexColor, event.source.getData());
                         else
                             log.error(`Invalid scale type: ${cModel.colormap.scaleClass}`)
                     } else {
@@ -440,31 +441,25 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             WidgetFactory
                 .label(SWT.CENTER)
                 .text("Start")
-                .layoutData(GridDataFactory.swtDefaults().create())
+                .layoutData(GridDataFactory.swtDefaults().align(SWT.CENTER, SWT.END).create())
                 .create(container);
 
-            const startValue = WidgetFactory
+            wizardUI.startValue = WidgetFactory
                 .label(SWT.LEFT)
-                .text("-2")
-                .layoutData(GridDataFactory.swtDefaults().create())
-                .create(container);
-
-            WidgetFactory
-                .label(SWT.CENTER)
                 .text("")
-                .layoutData(GridDataFactory.fillDefaults().grab(true, false).align(SWT.CENTER, SWT.CENTER).create())
+                .layoutData(GridDataFactory.fillDefaults().grab(true, false).create())
                 .create(container);
-        
-            const endValue = WidgetFactory
+      
+            wizardUI.endValue = WidgetFactory
                 .label(SWT.RIGHT)
-                .text("10")
-                .layoutData(GridDataFactory.swtDefaults().align(SWT.END, SWT.CENTER).create())
+                .text("")
+                .layoutData(GridDataFactory.fillDefaults().grab(true, false).create()) // .align(SWT.END, SWT.CENTER)
                 .create(container);
 
             WidgetFactory    
                 .label(SWT.CENTER)
                 .text("End")
-                .layoutData(GridDataFactory.swtDefaults().align(SWT.END, SWT.CENTER).create())
+                .layoutData(GridDataFactory.swtDefaults().align(SWT.CENTER, SWT.END).create())
                 .create(container);
 
             // Color scheme default management group
@@ -477,18 +472,25 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 .tooltip("Click to set start color")
                 .layoutData(GridDataFactory.swtDefaults().create())
                 .onSelect(setColor)
-                .create(container);     
+                .create(container);
+            wizardUI.startBtn.setData(ContinuousScale.EDGE.START);
             
             wizardUI.gradientLabel = WidgetFactory
                 .label(SWT.BORDER)
-                .tooltip("change it by changing colors at extremities")
-                .layoutData(GridDataFactory.fillDefaults().span(3, 1).grab(true, false).create())
+                .tooltip("click to set middle color position, if enabled")
+                .layoutData(GridDataFactory.fillDefaults().span(2, 1).grab(true, false).create())
                 .create(container);   
             
             wizardUI.gradientLabel.addMouseListener(MouseListener.mouseDownAdapter(
                 (e) => {
                     try {
-                        MessageDialog.openInformation(shell, "Click", `${e.button == 1 ? "Left" : e.button == 2 ? "Right" : "Other"}-click on ${e.x},${e.y}`)
+                        log.trace(`Click received ${e.button == 1 ? "Left" : e.button == 2 ? "Right" : "Other"}-click on ${e.x},${e.y}`);
+                        const scale = cModel.colormap.scale;
+                        if (scale instanceof ContinuousScale) { /// syntax checking purpose
+                            const position = e.x / wizardUI.gradientLabel.getBounds().width;
+                            log.trace(`Setting relative middle position at ${position}`);
+                            scale.setMiddlePosition(position, false);
+                        }
                     } catch (err) {
                         log.error(err.toString())
                     }
@@ -496,22 +498,16 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
 
             wizardUI.gradientLabel.addControlListener(ControlListener.controlResizedAdapter(
                 (e) => {
-                    try {
+                    try {  
                         const bounds = wizardUI.gradientLabel.getBounds();
                         // take into account the border
                         bounds.width += -2;
                         bounds.height += -2;
                         const width = bounds.width;
-                        log.info(`gradientLabel resized: ${bounds.width}x${bounds.height}`);
-                        if (cModel.colormap.scale instanceof ContinuousScale) {
-                            wizardUI.gradientLabel.setImage(
-                                imageRegistry.getGradientImage(
-                                    [{color: cModel.colormap.scale.start.color, x: 0}, {color: cModel.colormap.scale.end.color, x: width}],
-                                    bounds
-                                    )
-                                )
-                        } else {
-                            log.error(`Scale type invalid: ${cModel.colormap.scale.name}`);
+                        log.debug(`gradientLabel resized: ${bounds.width}x${bounds.height}`);
+                        const scale = cModel.colormap.scale;
+                        if (scale instanceof ContinuousScale) {
+                            wizardUI.gradientLabel.setImage( imageRegistry.getGradientImage(scale.relativeEdges(), bounds) );
                         }
                     } catch (err) {
                         log.error(err.toString())
@@ -520,29 +516,57 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
     
             wizardUI.endBtn = WidgetFactory
                 .button(SWT.PUSH)
-                // need image for correct size
+                // need image for correct default size of control
                 .image(imageRegistry.unknownImage)
                 .tooltip("Click to set end color")
                 .layoutData(GridDataFactory.swtDefaults().create())
                 .onSelect(setColor)
                 .create(container);
+            wizardUI.endBtn.setData(ContinuousScale.EDGE.END);
 
-            const cb = WidgetFactory
+            //FIXME create a container for middle color controls
+            const middleGroup = new Composite(container, SWT.NONE);
+            RowLayoutFactory.fillDefaults().center(true).applyTo(middleGroup);
+            middleGroup.setLayoutData(GridDataFactory.swtDefaults().span(4, 1).create());
+
+            wizardUI.cbMiddleColor = WidgetFactory
                 .button(SWT.CHECK)
                 .tooltip(`Add a middle color definition`)
                 .text("Middle color")
-                .layoutData(GridDataFactory.fillDefaults().span(2,1).create())
-                .onSelect((e) => btnMiddleColor.setEnabled(cb.getSelection()))
-                .create(container);
-            cb.setSelection(false);
+                .onSelect((e) => {
+                    if (cModel.colormap.scale instanceof ContinuousScale) {
+                        cModel.colormap.scale.enableMiddleColor(wizardUI.cbMiddleColor.getSelection())
+                    }})
+                .create(middleGroup);
+            wizardUI.cbMiddleColor.setSelection(false); 
 
-            const btnMiddleColor = WidgetFactory
+            wizardUI.middleBtn = WidgetFactory
                 .button(SWT.PUSH)
                 .image(imageRegistry.unknownImage)
                 .tooltip("Click to set middle color")
-                .layoutData(GridDataFactory.swtDefaults().span(3,1).create())
-                .create(container);
-            btnMiddleColor.setEnabled(false);
+                .onSelect(setColor)
+                .create(middleGroup);
+            wizardUI.middleBtn.setEnabled(false); 
+            wizardUI.middleBtn.setData(ContinuousScale.EDGE.MIDDLE);
+
+            WidgetFactory
+                .label(SWT.NONE)
+                .text(" at value:")
+                .create(middleGroup);
+
+            wizardUI.middlePosition = WidgetFactory
+                .spinner(SWT.BORDER)
+                .tooltip("Also click on gradient bar to set position")
+                .onSelect((e) => {
+                    const scale = cModel.colormap.scale;
+                    if (scale instanceof ContinuousScale) {
+                        const spinner = wizardUI.middlePosition;
+                        const position = spinner.getSelection()/(Math.pow(10, spinner.getDigits()));
+                        log.trace(`Setting middle position ${spinner.getSelection()} (=> ${position})`);
+                        scale.setMiddlePosition(position, true)
+                    } 
+                })
+                .create(middleGroup);
 
             // reset to default
             const resetDefaultCB = WidgetFactory
@@ -550,7 +574,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 .tooltip("Reset non-matching components to default colors")
                 .text("Reset other to default color")
                 .onSelect((_) => {cModel.colormap.resetDefault = resetDefaultCB.getSelection();})
-                .layoutData(GridDataFactory.fillDefaults().span(5, 1).create())
+                .layoutData(GridDataFactory.fillDefaults().span(4, 1).create())
                 .create(container)
             resetDefaultCB.setSelection(cModel.colormap.resetDefault);
 
@@ -558,7 +582,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             const preview = WidgetFactory
                 .group(SWT.NONE)
                 .text("Result preview")
-                .layoutData(GridDataFactory.fillDefaults().span(5, 1).indent(0, 16).grab(true, true).create())
+                .layoutData(GridDataFactory.fillDefaults().span(4, 1).indent(0, 16).grab(true, true).create())
                 .layout(new FillLayout())
                 .create(container);
 
@@ -569,6 +593,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
 
             pageContinuousColor.setControl(container);
             pageContinuousColor.setPageComplete(cModel.colormap.isApplicable());
+            pageContinuousColor.setDescription(`Select start, end and optionally middle colors to define gradient`);
             log.trace("... created");
         } catch (err) {
             log.error(err.toString())
@@ -585,66 +610,91 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
          * 
          * @param {ColorMap} colormap 
         */
-        function updateColorsPreview(colormap) {
+        function updateGradientColors(colormap) {
             // No need to use colormap as all except one at most shall be updated
-            log.trace(`buttons colors update...`)
+            log.trace(`updateGradientColors update...`)
             const scale = cModel.colormap.scale;
-            if (scale instanceof ContinuousScale) {
+            if (scale instanceof ContinuousScale) { // for IDE type checking mostly
                 wizardUI.startBtn.setImage(imageRegistry.getImage(scale.start.color));
                 wizardUI.endBtn.setImage(imageRegistry.getImage(scale.end.color));
+                wizardUI.cbMiddleColor.setSelection(scale.isMiddleColorEnabled());
+                wizardUI.middleBtn.setEnabled(scale.isMiddleColorEnabled());
+                log.trace(`middle color ? ${JSON.stringify(scale.middle)}`);
+                wizardUI.middleBtn.setImage(imageRegistry.getImage(scale.isMiddleColorEnabled() ? scale.middle.color: undefined));
                 log.trace(`gradient update...`);
                 const bounds = wizardUI.gradientLabel.getBounds();
                 // take into account the border
                 bounds.width += -2;
                 bounds.height += -2;
-                wizardUI.gradientLabel.setImage(
-                    imageRegistry.getGradientImage(
-                        [{color: scale.start.color, x: 0}, {color: scale.end.color, x: bounds.width}],
-                        bounds
-                        )
-                    )
-                log.trace(`... updated`);
+                wizardUI.gradientLabel.setImage( imageRegistry.getGradientImage(scale.relativeEdges(), bounds) );
+                wizardUI.middlePosition.setEnabled(scale.isMiddleColorEnabled());
+                const factor = Math.pow(10, wizardUI.middlePosition.getDigits());
+                wizardUI.middlePosition.setSelection(scale.isMiddleColorEnabled() ? Math.round(scale.middle.textAsNumber * factor) : 0); 
             } else {
                 log.error(`Scale type invalid: ${scale.name}`)
             }
-            log.info("updating preview colors")
+            log.info("... updating preview colors ...")
             for (const i of wizardUI.gradientTable.getItems()) {
                 i.setImage(imageRegistry.getImage(i.getData().color));
             }
             wizardUI.btnSave2.setEnabled(cModel.colormap.isApplicable() && cModel.colormap.scale.isDefined());
             pageContinuousColor.setPageComplete(cModel.colormap.isApplicable() && cModel.colormap.scale.isDefined());
             pageContinuousColor.getWizard().getContainer().updateButtons();
+            log.trace(`... updated`);
         }
 
         try {
             if (visible) {
-                cModel.registerModelChangeObserver(updateColorsPreview);
-
-                // creating the scale for current selection and recalculate colors
-                // FIXME create on button Selection ?
+                cModel.registerModelChangeObserver(updateGradientColors);
+                // forcing the scale type if necessary
                 cModel.colormap.scaleClass = ContinuousScale;
+                const scale = cModel.colormap.scale;
                 // Following if Just to avoid TS validation errors (implicit cast)
-                if (cModel.colormap.scale instanceof ContinuousScale) {
+                if (scale instanceof ContinuousScale) {
+                    // recalculating colors and selection
+                    scale.resetEdges();
                     // creating the preview labels
                     wizardUI.gradientTable.removeAll();
-                    for (const l of cModel.colormap.scale.selection) {
+                    for (const cl of scale.selection) {
                         const item = new TableItem(wizardUI.gradientTable, SWT.NONE);
-                        item.setText(l.text);
-                        item.setImage(imageRegistry.getImage(l.color));
-                        item.setData(l); // associate to model
+                        item.setText(cl.text);
+                        item.setImage(imageRegistry.unknownImage); //imageRegistry.getImage(cl.color)); FIXME
+                        item.setData(cl); // associate to model
                     }
-                    pageContinuousColor.setDescription(`Select start ('${cModel.colormap.scale.start.text}') and end ('${cModel.colormap.scale.end.text}') colors to define gradient`);
-                    updateColorsPreview(cModel.colormap);
+                    wizardUI.startValue.setText(scale.start.text);
+                    // wizardUI.startValue.pack();
+                    wizardUI.endValue.setText(scale.end.text);
+                    // wizardUI.endValue.pack();
+                    if (scale.isMiddleColorEnabled()) {
+                        const spinner = wizardUI.middlePosition;
+                        let exp = Math.log10(scale.end.textAsNumber - scale.start.textAsNumber)-2;
+                        exp = exp < 0 ? Math.floor(exp) : Math.ceil(exp);
+                        const digits = exp < 0 ? -exp+1 : 0;
+                        const limit = exp < 0 ? -exp+4 : exp +1;
+                        const factor = Math.pow(10, digits);
+                        const pageInc = Math.pow(10, exp);
+                        const inc = pageInc/10;
+                        log.trace(`delta = ${Math.log10(scale.end.textAsNumber - scale.start.textAsNumber)} Exp = ${exp}. Setting Middle spinner digits to ${digits}`);
+                        spinner.setDigits(digits);
+                        spinner.setIncrement(inc);
+                        spinner.setPageIncrement(pageInc);
+                        spinner.setTextLimit(limit)
+                        spinner.setMinimum(scale.start.textAsNumber * factor +1);
+                        spinner.setMaximum(scale.end.textAsNumber * factor -1);
+                        spinner.getParent().pack();
+                    }
+                    // pageContinuousColor.getControl().pack();
+                    updateGradientColors(cModel.colormap);
                 } else {
                     log.error(`Scale type invalid: ${cModel.colormap.scale.name}`)
                 }
                 pageContinuousColor.setTitle(`Continuous color scale for '${cModel.property}'`);
 
             } else {
-                cModel.removeModelChangeObserver(updateColorsPreview)
+                cModel.removeModelChangeObserver(updateGradientColors)
             }
         } catch(err) {
-            log.info(err.toString())
+            log.error(err.toString())
         } finally {
             Java.super(pageContinuousColor).setVisible(visible);
         }
@@ -703,6 +753,10 @@ const wizardUI = {
     btnSave1: undefined,
     // ContinuousColorPage
     /** @type {JavaObject} */
+    startValue: undefined, 
+    /** @type {JavaObject} */
+    endValue: undefined,
+    /** @type {JavaObject} */
     gradientLabel: undefined,
     /** @type {JavaObject} */
     gradientTable: undefined,
@@ -710,6 +764,10 @@ const wizardUI = {
     startBtn: undefined,
     /** @type {JavaObject} */
     endBtn: undefined,
+    /** @type {JavaObject} */
+    middleBtn: undefined,
+    /** @type {JavaObject} */
+    middlePosition: undefined,
     /** @type {JavaObject} */
     btnSave2: undefined,
 
