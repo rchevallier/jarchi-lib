@@ -4,22 +4,24 @@
  * @license Apache-2.0 cf LICENSE-2.0.txt
  * @author rchevallier
  * @copyright 2023 rchevallier
- * @see {@link ../doc/Colormap%wizard.md}
+ * @see {@link ../../doc/Colormap%wizard.md}
  */
 
 if (typeof __CALLER_SCRIPT__ == 'undefined') {
     // it is the main script
-    load(__DIR__ + "lib/misc.js");
-    log.level = LogLevel.TRACE;
+    load(__SCRIPTS_DIR__ + "lib/misc.js");
+    log.level = LogLevel.INFO;
     if (log.level <= LogLevel.DEBUG) {
         console.clear();
         console.show();
     }
 }
 
-load(__DIR__ + "lib/ColormapModel.js")
-load(__DIR__ + "lib/ColormapUI.js")
+load(__SCRIPTS_DIR__ + "lib/colormap/Model.js")
+load(__SCRIPTS_DIR__ + "lib/colormap/UI.js")
 
+// name of the property stored in view referencing the Archimate selected property for colormap
+const COLORMAP_PROPERTY = ".colormap.property";
 
 /**
  * Will gather all properties of all elements visual objects in the view (no relationships)
@@ -76,7 +78,7 @@ function applyColorScheme(view, scheme)
         }
     );
     // then we save the ref as the last applied colormap for the view, so it can be reapplied without wizard
-    view.prop(".colormap.property", scheme.name);
+    view.prop(COLORMAP_PROPERTY, scheme.name);
 }
 
 
@@ -132,31 +134,42 @@ function createLegend(view, scheme) {
 
 
 /**
- * The main script
+ * The Wizard main
+ * 
+ * @param {JavaObject} view the view to work on
+ * @param {boolean} openView open the view in UI (NIY)
+ * @returns {boolean} true if wizard successful, false if prematurely terminated
  */
-function colorWizard() {
-    const dir = __DIR__ + 'lib/Colormap.scheme';
+function colorWizard(view, openView = false) {
+    const dir = __SCRIPTS_DIR__ + 'lib/colormap/scheme';
     if (!mkdirs(dir)) {
         MessageDialog.openWarning(shell, "Color scheme saving", `Cannot create directory '${dir}' for storing color scheme.\nWon't be able to save them for default colors.`);
         log.warn(`Not possible to create directory '${dir}' for storing color scheme`);
     }
     
-    const theView = getCurrentView();
-    const scheme = wizardExecute(gatherViewPropertiesInfo(theView), theView.prop('.colormap.property'));
+    if (openView) {
+        // show the view in case it is called from reapply on model
+        // view.openInUI() no api in jscript ;-(
+    }
+
+    const scheme = wizardExecute(gatherViewPropertiesInfo(view), view.prop(COLORMAP_PROPERTY));
     if (scheme) {
         log.debug(`scheme = ${JSON.stringify(scheme, null, 2)}`)
-        applyColorScheme(theView, scheme);
-        createLegend(theView, scheme);
+        applyColorScheme(view, scheme);
+        createLegend(view, scheme);
+        return true
     } else {
         log.warn("execution cancelled");
+        return false
     }    
 }
 
 
 if (typeof __CALLER_SCRIPT__ != 'undefined') {
-    log.trace(`'Colormap wizard.ajs' loaded as a library for '${__CALLER_SCRIPT__}'`)
+    log.trace(`${__FILE__} loaded as a library for '${__CALLER_SCRIPT__}'`)
 } else {
-    log.info("*** Colormap starts")
-    colorWizard();
-    log.info("*** Colormap end.");
+    log.info("*** Colormap: Wizard - start")
+    const theView = getCurrentView();
+    colorWizard(theView);
+    log.info("*** Colormap: Wizard - end.");
 }

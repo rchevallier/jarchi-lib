@@ -552,6 +552,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
             WidgetFactory
                 .label(SWT.NONE)
                 .text(" at value:")
+                .tooltip("Also click on gradient bar to set position")
                 .create(middleGroup);
 
             wizardUI.middlePosition = WidgetFactory
@@ -649,7 +650,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 // forcing the scale type if necessary
                 cModel.colormap.scaleClass = ContinuousScale;
                 const scale = cModel.colormap.scale;
-                // Following if Just to avoid TS validation errors (implicit cast)
+                // F                                         ollowing if Just to avoid TS validation errors (implicit cast)
                 if (scale instanceof ContinuousScale) {
                     // recalculating colors and selection
                     scale.resetEdges();
@@ -662,28 +663,25 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                         item.setData(cl); // associate to model
                     }
                     wizardUI.startValue.setText(scale.start.text);
-                    // wizardUI.startValue.pack();
                     wizardUI.endValue.setText(scale.end.text);
-                    // wizardUI.endValue.pack();
-                    if (scale.isMiddleColorEnabled()) {
-                        const spinner = wizardUI.middlePosition;
-                        let exp = Math.log10(scale.end.textAsNumber - scale.start.textAsNumber)-2;
-                        exp = exp < 0 ? Math.floor(exp) : Math.ceil(exp);
-                        const digits = exp < 0 ? -exp+1 : 0;
-                        const limit = exp < 0 ? -exp+4 : exp +1;
-                        const factor = Math.pow(10, digits);
-                        const pageInc = Math.pow(10, exp);
-                        const inc = pageInc/10;
-                        log.trace(`delta = ${Math.log10(scale.end.textAsNumber - scale.start.textAsNumber)} Exp = ${exp}. Setting Middle spinner digits to ${digits}`);
-                        spinner.setDigits(digits);
-                        spinner.setIncrement(inc);
-                        spinner.setPageIncrement(pageInc);
-                        spinner.setTextLimit(limit)
-                        spinner.setMinimum(scale.start.textAsNumber * factor +1);
-                        spinner.setMaximum(scale.end.textAsNumber * factor -1);
-                        spinner.getParent().pack();
-                    }
-                    // pageContinuousColor.getControl().pack();
+                    
+                    // calculating for Spinner parameters depending on start and end values 
+                    const spinner = wizardUI.middlePosition;
+                    let exp = Math.log10(scale.end.textAsNumber - scale.start.textAsNumber)-2;
+                    exp = exp < 0 ? Math.floor(exp) : Math.ceil(exp);
+                    const digits = exp < 0 ? -exp+1 : 0;
+                    const limit = exp < 0 ? -exp+4 : exp +1;
+                    const factor = Math.pow(10, digits);
+                    const pageInc = Math.pow(10, exp);
+                    const inc = pageInc/10;
+                    log.trace(`delta = ${Math.log10(scale.end.textAsNumber - scale.start.textAsNumber)} Exp = ${exp}. Setting Middle spinner digits to ${digits}`);
+                    spinner.setDigits(digits);
+                    spinner.setIncrement(inc);
+                    spinner.setPageIncrement(pageInc);
+                    spinner.setTextLimit(limit)
+                    spinner.setMinimum(scale.start.textAsNumber * factor +1);
+                    spinner.setMaximum(scale.end.textAsNumber * factor -1);
+                    spinner.getParent().pack();
                     updateGradientColors(cModel.colormap);
                 } else {
                     log.error(`Scale type invalid: ${cModel.colormap.scale.name}`)

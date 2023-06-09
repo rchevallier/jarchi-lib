@@ -322,14 +322,23 @@ class ColorMap extends Map {
             this.get(label).color = color;
         }
         this._fireEvent(labels);
-}
+    }
+
+    /**
+     * @private
+     * @returns {string} the path to the color scheme saved file
+     */
+    _schemePath() {
+        return __SCRIPTS_DIR__ + 'lib/colormap/scheme/' + this.name.toLowerCase() + '.json'
+    }
+
     /**
      * Load if found the saved color scheme
      */
     loadColorScheme() {
         log.debug(`trying to load scheme for ${this.name}`);
         try {
-            const scheme = readAsJson(__DIR__ + 'Colormap.scheme/' + this.name.toLowerCase() + '.json')
+            const scheme = readAsJson(this._schemePath())
             log.info(`Color scheme for ${this.name} loaded`);
             if (scheme.resetDefault)
                 this.resetDefault = scheme.resetDefault;
@@ -343,6 +352,7 @@ class ColorMap extends Map {
                 this.scale.middle.text = `${scheme.Continuous.middle.value} - middle color`;
                 this.scale.middle.color = new HexColor(scheme.Continuous.middle.color);
                 this.scale.enableMiddleColor(true);
+                log.trace(`Middle color enabled and loaded: ${this.scale.middle.textAsNumber}: ${this.scale.middle.color.toString()}`)
             }
             this._fireEvent(this.labels());
         } catch (err) {
@@ -356,7 +366,7 @@ class ColorMap extends Map {
     saveColorScheme() {
         const json = JSON.stringify(this.getColorScheme(), undefined, 2);
         log.info(`Saving scheme ${this.name}: ${json}`);
-        jArchi.fs.writeFile(__DIR__ + 'Colormap.scheme/' + this.name.toLowerCase() + ".json", json);
+        jArchi.fs.writeFile(this._schemePath(), json);
     }
 
 
@@ -373,7 +383,6 @@ class ColorMap extends Map {
             colormap: Object.fromEntries(colormap) // NB: order of labels are undetermined
         }
         // handle continuous scale extremities 
-        // FIXME: USeful?
         if (this.scale instanceof ContinuousScale) {
             scheme.Continuous = {
                 start: {
@@ -469,12 +478,18 @@ class ContinuousScale extends CategoricalScale {
      * Precalculate sort and edges
      */
     resetEdges() {
+        log.trace(`resetting continuous scale edges`);
         this._selection = this.colormap.selection.sort((a, b) => a.textAsNumber - b.textAsNumber);
         this._start = this._selection[0].clone();
         this._end = this._selection[this._selection.length - 1].clone();
-        if (this.start.textAsNumber < 0 && this.end.textAsNumber > 0) {
-                this._middle = this.middle.clone("0 - middle color");
+        assert (this.start.isNumeric && this.end.isNumeric, "Extreme edge label is not numeric");
+        if (this.middle.isNumeric) {
+            // we keep it, otherwise we calculate an acceptable default value (dependent on start, end)
+        } else if (this.start.textAsNumber < 0 && this.end.textAsNumber > 0) {
+            // set to 0 if 0 between start and end
+            this._middle = this.middle.clone("0 - middle color");
         } else {
+            // set to middle point  otherwise
             const middleValue = (this.start.textAsNumber +  this.end.textAsNumber) / 2;
             this._middle = this.middle.clone(middleValue.toExponential(2) + " - middle color");
         }

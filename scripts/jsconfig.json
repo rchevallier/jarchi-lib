@@ -7,21 +7,12 @@
     "files": [
         "typings/globals.d.ts",
         "lib/misc.js",
-        // "dependencies.js",
-        // "Lineage analysis.ajs",
-        // "lib/LineageAnalysis.js",
-        // "lib/LineageConfigDialog.js",
-        // "Apply specialization label.ajs",
-        // "Generate legend.ajs",
-        // "Find deprecated elements.ajs",
-        // "Property heatmap.ajs",
-        // "Export View to CSV.ajs",
-        "lib/ColormapUI.js",
-        "lib/ColormapModel.js",
-        // "to SnakeCase.ajs",
-        "Colormap wizard.ajs",
-        "Colormap reapply.ajs",
-        "lib/ImageRegistry.js"
+        "lib/colormap/UI.js",
+        "lib/colormap/Model.js",
+        "lib/colormap/ImageRegistry.js",
+        "Colormap/Wizard.ajs",
+        "Colormap/Reapply on selected view.ajs",
+        "Colormap/Reapply on model.ajs"
     ],
     "exclude": [
         "lib.dom.d.ts"
