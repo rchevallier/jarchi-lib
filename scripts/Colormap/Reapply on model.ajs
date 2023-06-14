@@ -19,12 +19,19 @@ if (log.level <= LogLevel.DEBUG) {
 var __CALLER_SCRIPT__ = __FILE__
 load(__DIR__ + "Reapply on selected view.ajs");
 
+
 log.info("*** Colormap: Reapply on model - start")
 const views = $("view").filter(v => v.prop(COLORMAP_PROPERTY) != undefined);
-// using filter to stop at 1st non automatically applied
-views.filter(v => {
-    log.debug(`Reapply on view "${v.name}"`);
-    return reapplyOnView(v);
-});
+try {
+    views.each(v => {
+        log.debug(`Reapply on view "${v.name}"`);
+        if (!reapplyOnView(v)) {
+            throw `Cannot automatically reapply color scheme on view "${v.name}"` ;
+        }
+    })
+} catch (err) {
+    log.warn(err.toString())
+}
+
 log.info("*** Colormap: Reapply on model - end")
 
