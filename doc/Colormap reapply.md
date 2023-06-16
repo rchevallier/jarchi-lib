@@ -6,7 +6,7 @@
 
 ## Installation
 
-These scripts require `Colormap\Wizard.ajs` and associated javascript libraries.
+These scripts require `Colormap/Wizard.ajs` and associated javascript libraries in `lib/colormap/*.js` and `lib/misc.js`
 
 See section installation in [Colormap wizard](Colormap%20wizard.md).
 
@@ -18,7 +18,7 @@ When a color scheme has been applied to a view, the colormap **Wizard** saves th
 
 It is so possible for the user to reapply the color scheme associated to this selected property without going thru the **Wizard**, by launching the script `Colormap/Reapply to selected view.ajs`. 
 
-For instance, when some property values has been changed in model, and you want to recolorize the associated visual element according to the property values.
+For instance, when some values for this property has been changed in model, and you want to recolorize the associated visual elements with the new/updated property values.
 
 This script will automatically defer to the **Wizard** in the following cases:
 
@@ -36,4 +36,4 @@ The script will stop at the 1st view which cannot be recolorize automatically, a
 
 ## Nota Bene
 
-If you observe the applied color scheme seems different from the previously visible on the view, it's because it was modified manually after saving. The color scheme reapplied by this script is based on the one **saved**, not the latest applied.
+If you observe the applied color scheme seems different from the previously visible on the view, it's because the oen applied is different from the one saved. The color scheme reapplied by this script is based on the definition **saved**, not the latest applied.

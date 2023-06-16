@@ -630,7 +630,11 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 wizardUI.gradientLabel.setImage( imageRegistry.getGradientImage(scale.relativeEdges(), bounds) );
                 wizardUI.middlePosition.setEnabled(scale.isMiddleColorEnabled());
                 const factor = Math.pow(10, wizardUI.middlePosition.getDigits());
-                wizardUI.middlePosition.setSelection(scale.isMiddleColorEnabled() ? Math.round(scale.middle.textAsNumber * factor) : 0); 
+                const pos = scale.isMiddleColorEnabled() ? Math.round(scale.middle.textAsNumber * factor) : 0;
+                if (wizardUI.middlePosition.getSelection() != pos)
+                    // change the value only if there is a diff (ie: definition of position by clicking on gradient)
+                    // otherwise reselect in box the full content, and so cannot edit digit per digit in spinner
+                    wizardUI.middlePosition.setSelection(pos); 
             } else {
                 log.error(`Scale type invalid: ${scale.name}`)
             }
@@ -650,7 +654,7 @@ const pageContinuousColor = new ColorMapWizardPage("pageContinuousColor", {
                 // forcing the scale type if necessary
                 cModel.colormap.scaleClass = ContinuousScale;
                 const scale = cModel.colormap.scale;
-                // F                                         ollowing if Just to avoid TS validation errors (implicit cast)
+                // Just to avoid TS validation errors (implicit cast)
                 if (scale instanceof ContinuousScale) {
                     // recalculating colors and selection
                     scale.resetEdges();
