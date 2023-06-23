@@ -1,0 +1,93 @@
+/**
+ * Reapply the colormap default scheme previously applied on the current view
+ * 
+ * @license Apache-2.0 cf LICENSE-2.0.txt
+ * @author rchevallier
+ * @copyright 2023 rchevallier
+ * @see colorWizard called if reapply impossible
+ * @see {@link ../../doc/Colormap%20reapply.md}
+ */
+
+if (typeof __CALLER_SCRIPT__ == 'undefined') {
+    load(__SCRIPTS_DIR__ + "lib/misc.js");
+    log.level = LogLevel.INFO;
+    if (log.level <= LogLevel.DEBUG) {
+        console.clear();
+        console.show();
+    }
+}
+
+
+/**
+ * Hack not supported officialy. Until jArchi verb exists to put open/put forward a view in Archi UI
+ * @param {VisualObject} view 
+ */
+function showViewInUI(view) {
+    try {
+        const method = Packages.com.archimatetool.script.dom.model.ArchimateDiagramModelProxy.class.getDeclaredMethod("getEObject");
+        method.setAccessible(true);
+        const v = method.invoke(view);
+        Packages.com.archimatetool.editor.ui.services.EditorManager.openDiagramEditor(v);
+    } catch (e) {
+        log.warning(`Cannot open view in UI "${view.name}"`);
+    }
+}
+
+
+/**
+ * The script main
+ * @param {JavaObject} view the Archimate view
+ * @returns {boolean} true if automatically applied, false otherwise
+ */
+function reapplyOnView(view) {
+    const property = view.prop(COLORMAP_PROPERTY);
+    log.debug(`"${view.name}" property ${COLORMAP_PROPERTY}: ${property}`);
+    if (property) {
+        const props = gatherViewPropertiesInfo(view, property);
+        // @FIXME check props are OK ?
+        const cMap = new ColorMap(property, props[property]);
+        cMap.loadColorScheme();
+        if (cMap.isApplicable()) {
+            const scheme = cMap.getColorScheme();
+            log.debug(`scheme = ${JSON.stringify(scheme, null, 2)}`)
+            applyColorScheme(view, scheme);
+            createLegend(view, scheme);
+            return true;
+        } else {
+            log.warn(`'${property}' color scheme cannot be automatically reapplied on view "${view.name}"`);
+            showViewInUI(view);
+            if (MessageDialog.openConfirm(shell, "Invalid color scheme", 
+                    `'${property}' color scheme cannot be automatically reapplied on view "${view.name}".\n\nExecute the wizard?`)){
+                colorWizard(view, true)
+            } else {
+                log.info("Wizard not executed");
+            };
+            return false;
+        }
+    } else {
+        log.warn(`No previously applied colormap for view "${view.name}"`)
+        showViewInUI(view);
+        if (MessageDialog.openConfirm(shell, "No colormap", 
+            `No previously applied colormap for view "${view.name}".\n\nExecute the wizard?`)) {
+            colorWizard(view, true);
+        } else {
+            log.info("Wizard not executed");
+        };
+    return false;
+    }
+}
+
+// this global variable is used as a marker flag so Colormap/Wizard.ajs is only used as a library, and not as a main script
+if (typeof __CALLER_SCRIPT__ == 'undefined') {
+    var __CALLER_SCRIPT__ = __FILE__ 
+}
+load(__DIR__ + "Wizard.ajs");
+
+if (__CALLER_SCRIPT__ != __FILE__ ) {
+    log.info(`${__FILE__} loaded as library by ${__CALLER_SCRIPT__}`)
+} else {
+    log.info("*** Colormap: reapply on selected view - start")
+    reapplyOnView(getCurrentView());
+    log.info("*** Colormap: reapply on selected view - end")
+}
+

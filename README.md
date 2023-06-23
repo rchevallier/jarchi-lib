@@ -24,11 +24,11 @@ Custom organic grown developed or adapted by yours truly, without any ChatGpt in
 
 For development, allow code completion in VSCode for Archimate jArchi api. To be used in conjunction with [`jsconfig.json`](https://code.visualstudio.com/docs/languages/jsconfig).
 
-## 1. [Colormap wizard.ajs](doc/Colormap%20wizard.md), [Colormap reapply.ajs](doc/Colormap%20reapply.md)
+## 1. [Colormap/Wizard.ajs](doc/Colormap%20wizard.md), [Colormap/Reapply on selected view.ajs](doc/Colormap%20reapply.md), [Colormap/Reapply on model.ajs](doc/Colormap%20reapply.md), 
 
-A property heatmap Wizard, with either a discrete categorical color scale or a continuous (gradient) numeric color scale. 
+A property heatmap Wizard, with either a discrete categorical color scale or a continuous (gradient) numeric color scale. And helper scripts to reapply the color scheme previously defined by the wizard on a view or all views of a model.
 
-See [User's Guide](doc/Colormap.md) for details and installation.
+See [User's Guide](doc/Colormap%20wizard.md) for details and installation.
 
 ## 2. [Generate legend.ajs](scripts/Generate%20legend.ajs)
 
