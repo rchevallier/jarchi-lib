@@ -51,9 +51,9 @@ function update_specialization(e) {
     let specialization = e.specialization
 
     // check first is specialization is hardcoded in label. This can overwrite previous specialisation
-    let re_stereotype = e.name.match(/<(.+)>/)
+    let re_stereotype = e.name.match(/[<«](.+)[>»]/)
     if (re_stereotype) {
-        e.name = e.name.replace(/<.+>/, '').trim()
+        e.name = e.name.replace(/[<«].+[>»]/, '').trim()
         specialization = re_stereotype[1].trim()
     } 
     // cleaning legacy
@@ -87,7 +87,7 @@ function update_specialization(e) {
     }
 }
 
-const ELEMENT_LABEL = '${name}${if:${specialization}:\n<${specialization}>}'
+const ELEMENT_LABEL = '${name}${if:${specialization}:\n«${specialization}»}'
 const RELATION_LABEL = '${wordwrap:12:${if:${name}:${name}:${specialization}}}'
 
 /**

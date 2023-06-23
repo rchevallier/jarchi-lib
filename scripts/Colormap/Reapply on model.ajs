@@ -1,0 +1,37 @@
+/**
+ * Reapply the colormap default scheme previously applied on the all views of the model
+ * Will stop at the 1st view when automatic reapply cannot be made and will launch the Wizard
+ *  
+ * @license Apache-2.0 cf LICENSE-2.0.txt
+ * @author rchevallier
+ * @copyright 2023 rchevallier
+ * @see {@link ../../doc/Colormap%20reapply.md}
+ */
+
+load(__SCRIPTS_DIR__ + "lib/misc.js");
+log.level = LogLevel.DEBUG;
+if (log.level <= LogLevel.DEBUG) {
+    console.clear();
+    console.show();
+}
+
+// this global variable is used as a marker flag so Colormap/Wizard.ajs and Colormap/Reapply on selected view.ajs are only used as a library, and not as a main script
+var __CALLER_SCRIPT__ = __FILE__
+load(__DIR__ + "Reapply on selected view.ajs");
+
+
+log.info("*** Colormap: Reapply on model - start")
+const views = $("view").filter(v => v.prop(COLORMAP_PROPERTY) != undefined);
+try {
+    views.each(v => {
+        log.debug(`Reapply on view "${v.name}"`);
+        if (!reapplyOnView(v)) {
+            throw `Cannot automatically reapply color scheme on view "${v.name}"` ;
+        }
+    })
+} catch (err) {
+    log.warn(err.toString())
+}
+
+log.info("*** Colormap: Reapply on model - end")
+

@@ -1,10 +1,12 @@
-# Colormap reapply
+# Colormap/Reapply*
 
-This is the companion .ajs script to [Colormap wizard](Colormap%20wizard.md).
+2 supplemental companion .ajs script to [Colormap wizard](Colormap%20wizard.md):
+* `Colormap/Reapply to selected view.ajs`
+* `Colormap/Reapply to model.ajs`
 
 ## Installation
 
-This script requires `Colormap wizard.ajs` and associated javascript libraries.
+These scripts require `Colormap/Wizard.ajs` and associated javascript libraries in `lib/colormap/*.js` and `lib/misc.js`
 
 See section installation in [Colormap wizard](Colormap%20wizard.md).
 
@@ -12,15 +14,26 @@ See section installation in [Colormap wizard](Colormap%20wizard.md).
 
 When a color scheme has been applied to a view, the colormap **Wizard** saves the name of the selected property for colorization among the view's properties under then name `.colormap.property`.
 
-It is so possible for the user to reapply the color scheme associated to this selected property without going thru the **Wizard**, by launching this script. For instance, when some selected property values has been changed for visual objects present in the view, and you want to colorize according to the visual element current property values.
+### On a selected view 
 
-## Limitations
+It is so possible for the user to reapply the color scheme associated to this selected property without going thru the **Wizard**, by launching the script `Colormap/Reapply to selected view.ajs`. 
+
+For instance, when some values for this property has been changed in model, and you want to recolorize the associated visual elements with the new/updated property values.
 
 This script will automatically defer to the **Wizard** in the following cases:
 
-1. There is no saved color scheme associated to the property (file `__DIR__/lib/colorscheme/<property>.json`)
+1. There is no saved color scheme associated to the property (file `__SCRIPTS_DIR__/lib/colormap/scheme/<property>.json`)
 2. None of the visual objects in the view have the property valued
 3. For a Categorical color scheme, at least one visual object property value has no corresponding color
 4. For a Continuous color scheme, among all the visual objects property values, the lowest or highest property value is out of range of the color scheme scale.
 
-**NB**: if the color scheme saved definition is not the one applied on the view, because it was modified manually after saving, the color scheme reapplied by this script is based on the one saved, not the latest applied.
+
+### On a model
+
+The script `Colormap/Reapply to model.ajs` will reapply the color scheme associated to each view of the current model, which has a `.colormap.property` property defined.
+
+The script will stop at the 1st view which cannot be recolorize automatically, and it will defer to the **Wizard**.
+
+## Nota Bene
+
+If you observe the applied color scheme seems different from the previously visible on the view, it's because the oen applied is different from the one saved. The color scheme reapplied by this script is based on the definition **saved**, not the latest applied.

@@ -7,21 +7,24 @@ Inspired from **Steven Mileham** [script](https://gist.github.com/smileham/4bbca
 Following files and directory structure **MUST** be copied in the jArchi scripting directory (`__SCRIPTS_DIR__`) or a subdirectory and shall respect the tree structure.
 
 ```
-Colormap wizard.ajs - launch the Wizard on the current view
-Colormap reapply.ajs - reapply the color scheme of the current view
+Colormap/
+    Wizard.ajs - launch the Wizard on the current view
+    Reapply on selected view.ajs - reapply the color scheme of the selected view
+    Reapply on model.ajs - reapply to all views of the model
 lib/
     misc.js - scripts common utilities
-    ColorModel.js 
-    ColorWizard.js
-    ImageRegistry.js
-    Colormap.scheme/ - directory to store/retrieve default property color schemes
+    colormap/
+        Model.js 
+        Wizard.js
+        ImageRegistry.js
+        scheme/ - directory to store/retrieve default property color schemes
 ```
 
 ## Execution
 
 The **Wizard** is organized in 3 steps. As with any wizard, it is possible to go back and forth between pages with `< Back` and `Next >` buttons. `Cancel` will stop the Wizard. `Finish` will execute the colorization, if all necessary choices are made.
 
-The **reapply** will apply directly the colormap saved default color scheme to the selected view. See script [details](Colormap%20reapply.md).
+The **Reapply** scripts will apply directly the colormap saved default color scheme to the view (resp. model views). See scripts [documentation](Colormap%20reapply.md).
 
 ### 1) Property selection step
 
@@ -51,26 +54,30 @@ A property label which color has not been defined yet is represented by ![Unknow
 
 ![Categorical](./img/Category%20scheme%20colors.png)
 
-The `Reset other to default color` checkbox will instruct to reset to default color all visual elements in the view which don't have the property or a property label color defined.
+The `Reset other to default color` checkbox will instruct to reset to Archi default color all visual elements which don't have the property or a property label color defined.
 
-The `Color scheme` section is explained below. If a default color scheme exists for the property, it will be applied.
+The `Color scheme` section is explained below. If a saved color scheme exists for the property, it will be applied by default.
 
 
 ### 3.b) Continuous color scheme 
 
-In this scheme, you define the colors for the lowest and highest numerical values of the property labels. A proportional gradient color scheme is applied to each label numerical value. 
-
-A color has not been defined yet is represented by ![Unknown color](./img/UnknownColor.png).
+In this scheme, you define the colors for the lowest and highest numerical values of the property labels. A proportional gradient color scheme is applied to each label numerical value.
 
 ![Continuous](./img/Continuous%20scheme%20colors.png)
 
+It's possible to set a middle color in the gradient. The position of the color can be defined by clicking directly on the gradient or editing the value in the spinner box.
+
+![Continuous](./img/Continuous%20scheme%20colors%20middle%20color.png)
+
+A color which has not been defined yet is represented by ![Unknown color](./img/UnknownColor.png).
+
 ### Creating or reloading color scheme
 
-In step 3), for both color schemes, you can save the current color definition as the default (and the one to reapply per default for the property) using the `Save` button. `Reload` will overwrite the current label selection color scheme with the saved one.
+In step 3), for both color schemes, you can save the current color definition as the default definition for the selected property (and the one to reapply, see [reapply scripts](Colormap%20reapply.md)) using the `Save` button. `Reload` will overwrite the current label selection color scheme with the saved one.
 
-**NB**: the **Reapply** script is based on the name of the property. It will reapply the color scheme definition **as saved**, which may be not the one last manually applied but not saved.
+**NB**: the [reapply scripts](Colormap%20reapply.md) is based on the name of the property. It will reapply the **saved** color scheme definition, which may be not the one manually defined and applied but not saved.
 
-![default scheme](./img/Default%20Color.png)
+![saving and loading scheme](./img/Default%20Color.png)
 
 ## Finishing and Legend creation
 
@@ -78,12 +85,14 @@ If execution is asked (button `Finish` pressed), defined color scheme will be ap
 
 A legend will be created. If a previous legend was created, it will be replaced at the same position, otherwise it will be positioned by default in the top left corner of the current view.
 
-#### Example for categorical scale
+NB: The legend format is slightly different between categorical (lexical sort, space between colors, border) and continuous scale (numeric sort, no space, no border)
+
+### Example for categorical scale
 
 ![Categorical result](./img/Category%20Scheme%20Result.png)
 
-#### Example for continuous scale
+### Example for continuous scale
 
 ![Continuous result](./img/Continuous%20color%20output.png)
 
-As with any jArchi script, if the result doesn't suit you, you can cancel the changes by just selecting `Edit | Undo (CTRL-Z)` menu item (Reselect the view first if necessary).
+As with any jArchi script, you can cancel the changes applied by just selecting `Edit | Undo (CTRL-Z)` menu item (Reselect the view first if necessary).
