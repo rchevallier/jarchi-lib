@@ -26,7 +26,9 @@ const COLORMAP_PROPERTY = ".colormap.property";
 /**
  * Will gather all properties of all elements visual objects in the view (no relationships)
  * and for each property, the set of found values
- * TODO: extend to support relationship schemes
+ * 
+ * MAYBE: extend to support relationship schemes?
+ * 
  * @param {ArchimateView} view the view to gather from
  * @param {string} [property] collect only for this property
  * @returns {{[x:string]: string[]}} alphabetically ordered property names and associated labels
@@ -152,7 +154,7 @@ function colorWizard(view, openView = false) {
         // view.openInUI() no api in jscript ;-(
     }
 
-    const scheme = wizardExecute(gatherViewPropertiesInfo(view), view.prop(COLORMAP_PROPERTY));
+    const scheme = Wizard.execute(gatherViewPropertiesInfo(view), view.prop(COLORMAP_PROPERTY));
     if (scheme) {
         log.debug(`scheme = ${JSON.stringify(scheme, null, 2)}`)
         applyColorScheme(view, scheme);

@@ -101,7 +101,7 @@ class ImageRegistry {
     }
 
     /**
-     * Returns and create if doesn't exist an colorized rectangular shaped SWT image
+     * Returns (and create if doesn't exist in cache) an colorized rectangular shaped SWT image
      * Store it in cache
      *
      * @param {HexColor} hex in hexadecimal form "#RRGGBB"
@@ -176,7 +176,6 @@ class ImageRegistry {
  
     /**
      * Get a gradient image from 2 colors from cache, store it in cache if needs to be created
-
      * 
      * @param {Edge[]} edges Gradient start color, colors can be undefined
      * @param {JavaObject} bounds SWT Bound object

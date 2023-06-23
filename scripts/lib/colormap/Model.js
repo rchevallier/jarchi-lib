@@ -144,9 +144,11 @@ class ColorLabel {
 
 class ColorMap extends Map {
     /**
+     * a Map between a label string and a ColorLabel. The Map also has extra properties: a name, a flag
+     * 
      * @param {string} pname property name
      * @param {string[]} [labels] initial set of labels
-     * @param {HexColor} [color] default color, can be undefined
+     * @param {HexColor?} [color] color for all labels, can be undefined
      * @param {boolean} [resetDefault]  default is True
      * @param {typeof CategoricalScale} [scaleClass] type of ColorMap, default Categorical
      */
@@ -443,12 +445,10 @@ class CategoricalScale {
 
 
 /**
- * For now the only intelligent scale available, based on n contiguous color gradients
- * Possible other scales to be implemented:
+ * For now the only intelligent scale available, based on 1 or 2 contiguous color gradients
+ * Possible other scales to be implemented oneday:
  *   - StepScale: continuous, but with discrete step ranges
  * 
- * 
- * FIXME: middle allways exists. Use excluded flag to use it or not
  */
 class ContinuousScale extends CategoricalScale {
 
